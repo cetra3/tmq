@@ -1,8 +1,6 @@
 use mio::unix::EventedFd;
 use mio::{Evented, Poll, PollOpt, Ready, Token};
-use zmq::{Socket, Message};
-
-use futures::{Async, Poll as FuturePoll};
+use zmq::Socket;
 
 use std::io;
 
@@ -15,8 +13,6 @@ impl MioSocket {
     pub fn new(socket: Socket) -> Self {
         Self { io: socket }
     }
-
-
 }
 
 //Convert to/from MioSocket

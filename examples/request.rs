@@ -6,8 +6,11 @@ extern crate tokio;
 #[macro_use]
 extern crate log;
 
+extern crate failure;
+
 use futures::{stream, Future, Stream};
 
+use failure::Error;
 
 use tmq::*;
 
@@ -38,7 +41,7 @@ fn main() {
 
 }
 
-fn make_request(count: usize) -> impl Stream<Item=Message, Error=()> {
+fn make_request(count: usize) -> impl Stream<Item=Message, Error=Error> {
 
     let mut vec = Vec::new();
 

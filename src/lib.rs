@@ -11,7 +11,8 @@ extern crate log;
 mod rep;
 mod req;
 
-mod mio_socket;
+mod socket;
+mod poll;
 
 pub use rep::{rep, Rep, Responder};
 pub use req::{req, Req};
