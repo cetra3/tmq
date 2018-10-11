@@ -1,4 +1,3 @@
-
 use failure::Error;
 use futures::{Async, Poll};
 use socket::MioSocket;
@@ -8,15 +7,14 @@ use tokio::reactor::PollEvented2;
 
 use zmq;
 
-
 pub trait Poller {
-    fn send_message(&mut self, msg: &zmq::Message) -> Poll<(), Error>;
+    fn send_message(&self, msg: &zmq::Message) -> Poll<(), Error>;
 
-    fn recv_message(&mut self, msg: &mut zmq::Message) -> Poll<(), Error>;
+    fn recv_message(&self, msg: &mut zmq::Message) -> Poll<(), Error>;
 }
 
 impl Poller for PollEvented2<MioSocket> {
-    fn send_message(&mut self, msg: &zmq::Message) -> Poll<(), Error> {
+    fn send_message(&self, msg: &zmq::Message) -> Poll<(), Error> {
         match self.poll_write_ready()? {
             Async::Ready(_) => {
                 //Send the message, and if it will block, then we set up a notifier
@@ -38,7 +36,7 @@ impl Poller for PollEvented2<MioSocket> {
         }
     }
 
-    fn recv_message(&mut self, msg: &mut zmq::Message) -> Poll<(), Error> {
+    fn recv_message(&self, msg: &mut zmq::Message) -> Poll<(), Error> {
         let ready = Ready::readable();
 
         match self.poll_read_ready(ready)? {
@@ -59,5 +57,4 @@ impl Poller for PollEvented2<MioSocket> {
             }
         }
     }
-
 }

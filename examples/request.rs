@@ -23,13 +23,10 @@ fn main() {
 
     pretty_env_logger::init();
 
-    let request = make_request(5);
-
-
-    let request = req(&Context::new())
+    let request = request(&Context::new())
         .connect("tcp://127.0.0.1:7899")
         .expect("Couldn't connect")
-        .with(request)
+        .with(make_request(5))
         .for_each(|val| {
             info!("Response: {}", val.as_str().unwrap_or(""));
             Ok(())
@@ -38,11 +35,10 @@ fn main() {
         });
 
     tokio::run(request);
-
 }
 
-fn make_request(count: usize) -> impl Stream<Item=Message, Error=Error> {
-
+//Send some requests to the server
+fn make_request(count: usize) -> impl Stream<Item = Message, Error = Error> {
     let mut vec = Vec::new();
 
     for i in 0..count {

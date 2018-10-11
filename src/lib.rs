@@ -8,13 +8,17 @@ extern crate zmq;
 #[macro_use]
 extern crate log;
 
-mod rep;
-mod req;
+mod publish;
+mod request;
+mod respond;
+mod subscribe;
 
-mod socket;
 mod poll;
+mod socket;
 
-pub use rep::{rep, Rep, Responder};
-pub use req::{req, Req};
+pub use publish::{publish, Pub};
+pub use request::{request, Req};
+pub use respond::{respond, Rep, Responder};
+pub use subscribe::{subscribe, Sub};
 
 pub use zmq::{Context, Message, Result, Socket, SocketType};

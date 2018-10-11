@@ -23,14 +23,13 @@ fn main() {
 
     pretty_env_logger::init();
 
-    let responder = rep(&Context::new())
+    let responder = respond(&Context::new())
         .bind("tcp://127.0.0.1:7899")
         .expect("Couldn't bind address")
         .with(|msg: Message| {
             info!("Request: {}", msg.as_str().unwrap_or(""));
             Ok(msg)
-        })
-        .map_err(|err| {
+        }).map_err(|err| {
             error!("Error from server:{}", err);
         });
 
@@ -44,11 +43,11 @@ impl Responder for EchoResponder {
     type Output = FutureResult<zmq::Message, Error>;
 
     fn respond(&mut self, msg: zmq::Message) -> Self::Output {
-        return Ok(msg).into()
+        return Ok(msg).into();
     }
 }
 
 //Or you can use a free-floating function
-fn echo(msg: zmq::Message) -> impl Future<Item=zmq::Message, Error=Error> {
-    return ok(msg)
+fn echo(msg: zmq::Message) -> impl Future<Item = zmq::Message, Error = Error> {
+    return ok(msg);
 }

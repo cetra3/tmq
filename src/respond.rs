@@ -3,8 +3,8 @@ use futures::{Async, Poll};
 use futures::{Future, IntoFuture};
 use socket::MioSocket;
 
-use tokio::reactor::PollEvented2;
 use poll::Poller;
+use tokio::reactor::PollEvented2;
 
 use futures::task;
 
@@ -30,7 +30,7 @@ impl<
     }
 }
 
-pub fn rep(context: &Context) -> RepBuilder {
+pub fn respond(context: &Context) -> RepBuilder {
     RepBuilder { context }
 }
 
@@ -51,6 +51,15 @@ impl<'a> RepBuilder<'a> {
             socket: socket.into(),
         })
     }
+
+    pub fn connect(self, endpoint: &str) -> Result<RepBuilderBounded, Error> {
+        let socket = self.context.socket(SocketType::REP)?;
+        socket.connect(endpoint)?;
+
+        Ok(RepBuilderBounded {
+            socket: socket.into(),
+        })
+    }
 }
 
 impl RepBuilderBounded {
@@ -61,7 +70,7 @@ impl RepBuilderBounded {
         Rep {
             socket: PollEvented2::new(self.socket),
             state: State::Receiving(zmq::Message::new()),
-            responder
+            responder,
         }
     }
 }
@@ -71,7 +80,6 @@ pub struct Rep<R: Responder, F: Future<Item = zmq::Message, Error = Error>> {
     state: State<F>,
     responder: R,
 }
-
 
 pub enum State<F: Future<Item = zmq::Message, Error = Error>> {
     Receiving(zmq::Message),
@@ -101,17 +109,15 @@ impl<R: Responder<Output = F>, F: Future<Item = zmq::Message, Error = Error>> Fu
         let state = mem::replace(&mut self.state, State::InPoll);
 
         match state {
-            State::Receiving(mut msg) => {
-                match self.socket.recv_message(&mut msg)? {
-                    Async::Ready(_) => {
-                        task::current().notify();
-                        self.state = State::RunningFuture(self.responder.respond(msg));
-                    }
-                    Async::NotReady => {
-                        self.state = State::Receiving(msg);
-                    }
+            State::Receiving(mut msg) => match self.socket.recv_message(&mut msg)? {
+                Async::Ready(_) => {
+                    task::current().notify();
+                    self.state = State::RunningFuture(self.responder.respond(msg));
                 }
-            }
+                Async::NotReady => {
+                    self.state = State::Receiving(msg);
+                }
+            },
             State::RunningFuture(mut f) => match f.poll()? {
                 Async::Ready(msg) => {
                     task::current().notify();
@@ -121,18 +127,15 @@ impl<R: Responder<Output = F>, F: Future<Item = zmq::Message, Error = Error>> Fu
                     self.state = State::RunningFuture(f);
                 }
             },
-            State::Sending(msg) => {
-                match self.socket.send_message(&msg)? {
-                    Async::Ready(_) => {
-                        task::current().notify();
-                        self.state = State::Receiving(zmq::Message::new());
-                    },
-                    Async::NotReady => {
-                        self.state = State::Sending(msg);
-                    }
-
+            State::Sending(msg) => match self.socket.send_message(&msg)? {
+                Async::Ready(_) => {
+                    task::current().notify();
+                    self.state = State::Receiving(zmq::Message::new());
                 }
-            }
+                Async::NotReady => {
+                    self.state = State::Sending(msg);
+                }
+            },
             State::InPoll => unreachable!("Should not get here"),
         };
 

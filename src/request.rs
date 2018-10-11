@@ -1,20 +1,19 @@
-use std::fmt::Display;
 use futures::Stream;
 use futures::{Async, Poll};
 
 use tokio::reactor::PollEvented2;
 
-use failure::{err_msg, Error};
+use failure::Error;
 use std::{fmt, mem};
 
 use futures::task;
 
 use zmq::{self, Context, SocketType};
 
-use socket::MioSocket;
 use poll::Poller;
+use socket::MioSocket;
 
-pub fn req(context: &Context) -> ReqBuilder {
+pub fn request(context: &Context) -> ReqBuilder {
     ReqBuilder { context }
 }
 
@@ -35,10 +34,22 @@ impl<'a> ReqBuilder<'a> {
             socket: socket.into(),
         })
     }
+
+    pub fn bind(self, endpoint: &str) -> Result<ReqBuilderBounded, Error> {
+        let socket = self.context.socket(SocketType::REQ)?;
+        socket.bind(endpoint)?;
+
+        Ok(ReqBuilderBounded {
+            socket: socket.into(),
+        })
+    }
 }
 
 impl ReqBuilderBounded {
-    pub fn with<M: Into<zmq::Message>, S: Stream<Item = M, Error = Error>>(self, stream: S) -> Req<M, S, PollEvented2<MioSocket>> {
+    pub fn with<M: Into<zmq::Message>, S: Stream<Item = M, Error = Error>>(
+        self,
+        stream: S,
+    ) -> Req<M, S, PollEvented2<MioSocket>> {
         Req {
             stream,
             socket: PollEvented2::new(self.socket),
@@ -82,10 +93,7 @@ impl<M: Into<zmq::Message>, S: Stream<Item = M, Error = Error>, P: Poller> Strea
 
         match state {
             State::BeginSend => {
-                match self
-                    .stream
-                    .poll()?
-                {
+                match self.stream.poll()? {
                     //The inner stream is not ready to send anything yet, so we wait.
                     Async::NotReady => {
                         self.state = State::BeginSend;
@@ -101,33 +109,29 @@ impl<M: Into<zmq::Message>, S: Stream<Item = M, Error = Error>, P: Poller> Strea
                     }
                 }
             }
-            State::Sending(msg) => {
-                match self.socket.send_message(&msg)? {
-                    Async::Ready(_) => {
-                        task::current().notify();
-                        self.state = State::Receiving(zmq::Message::new());
-                    },
-                    Async::NotReady => {
-                        self.state = State::Sending(msg);
-                    }
+            State::Sending(msg) => match self.socket.send_message(&msg)? {
+                Async::Ready(_) => {
+                    task::current().notify();
+                    self.state = State::Receiving(zmq::Message::new());
                 }
-            }
-            State::Receiving(mut msg) => {
-                match self.socket.recv_message(&mut msg)? {
-                    Async::Ready(_) => {
-                        task::current().notify();
+                Async::NotReady => {
+                    self.state = State::Sending(msg);
+                }
+            },
+            State::Receiving(mut msg) => match self.socket.recv_message(&mut msg)? {
+                Async::Ready(_) => {
+                    task::current().notify();
 
-                        self.state = State::BeginSend;
-                        return Ok(Async::Ready(Some(msg)));
-                    },
-                    Async::NotReady => {
-                        self.state = State::Receiving(msg);
-                    }
+                    self.state = State::BeginSend;
+                    return Ok(Async::Ready(Some(msg)));
                 }
-            }
+                Async::NotReady => {
+                    self.state = State::Receiving(msg);
+                }
+            },
             State::InPoll => unreachable!("Should not get here"),
         };
 
-        return Ok(Async::NotReady)
+        return Ok(Async::NotReady);
     }
 }
