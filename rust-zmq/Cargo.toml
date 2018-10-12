@@ -1,5 +1,5 @@
 [package]
-name = "rust-zmq"
+name = "tmq-zmq"
 version = "0.9.0"
 authors = [
     "a.rottmann@gmx.at",
