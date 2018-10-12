@@ -5,7 +5,6 @@ extern crate tokio;
 #[macro_use]
 extern crate log;
 extern crate failure;
-extern crate zmq;
 
 use failure::Error;
 use futures::future::ok;
@@ -40,14 +39,14 @@ fn main() {
 pub struct EchoResponder {}
 
 impl Responder for EchoResponder {
-    type Output = FutureResult<zmq::Message, Error>;
+    type Output = FutureResult<Message, Error>;
 
-    fn respond(&mut self, msg: zmq::Message) -> Self::Output {
+    fn respond(&mut self, msg: Message) -> Self::Output {
         return Ok(msg).into();
     }
 }
 
 //Or you can use a free-floating function
-fn echo(msg: zmq::Message) -> impl Future<Item = zmq::Message, Error = Error> {
+fn echo(msg: Message) -> impl Future<Item = Message, Error = Error> {
     return ok(msg);
 }

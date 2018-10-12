@@ -3,7 +3,7 @@ extern crate failure;
 extern crate futures;
 extern crate mio;
 extern crate tokio;
-extern crate zmq;
+extern crate rust_zmq as zmq;
 
 #[macro_use]
 extern crate log;
