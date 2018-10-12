@@ -12,7 +12,7 @@ futures = "0.1"
 mio = "0.6"
 tokio = "0.1"
 tokio-io = "0.1"
-zmq = { git = "https://github.com/erickt/rust-zmq" }
+zmq = { path = "rust-zmq" }
 failure = "0.1"
 log = "0.4"
 
