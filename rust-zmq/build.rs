@@ -1,4 +1,4 @@
-extern crate zmq_sys as zmq;
+extern crate tmq_zmq_sys as zmq;
 
 #[cfg(feature = "zmq_has")]
 fn main() {

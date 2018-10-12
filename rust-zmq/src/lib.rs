@@ -12,7 +12,7 @@ extern crate bitflags;
 extern crate log;
 
 extern crate libc;
-extern crate zmq_sys;
+extern crate tmq_zmq_sys as zmq_sys;
 
 use libc::{c_int, c_long, c_short};
 use std::ffi;

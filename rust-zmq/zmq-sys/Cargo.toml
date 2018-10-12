@@ -1,5 +1,5 @@
 [package]
-name = "zmq-sys"
+name = "tmq-zmq-sys"
 version = "0.9.0"
 authors = [
     "a.rottmann@gmx.at",

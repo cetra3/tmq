@@ -1,4 +1,4 @@
-extern crate zmq_sys;
+extern crate tmq_zmq_sys as zmq_sys;
 
 use libc::{size_t};
 
