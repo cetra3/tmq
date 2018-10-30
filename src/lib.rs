@@ -20,5 +20,7 @@ pub use publish::{publish, Pub};
 pub use request::{request, Req};
 pub use respond::{respond, Rep, Responder};
 pub use subscribe::{subscribe, Sub};
+pub use socket::MioSocket;
+pub use poll::Poller;
 
 pub use zmq::{Context, Message, Result, Socket, SocketType};
