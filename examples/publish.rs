@@ -47,5 +47,6 @@ fn make_broadcast() -> impl Stream<Item = Message, Error = Error> {
             let message = format!("Broadcast #{}", i);
             info!("Publish: {}", message);
             Message::from(&message)
-        }).from_err()
+        })
+        .from_err()
 }

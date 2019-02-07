@@ -28,7 +28,8 @@ fn main() {
         .with(|msg: Message| {
             info!("Request: {}", msg.as_str().unwrap_or(""));
             Ok(msg)
-        }).map_err(|err| {
+        })
+        .map_err(|err| {
             error!("Error from server:{}", err);
         });
 

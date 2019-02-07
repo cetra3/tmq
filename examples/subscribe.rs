@@ -28,7 +28,8 @@ fn main() {
         .for_each(|val| {
             info!("Subscribe: {}", val.as_str().unwrap_or(""));
             Ok(())
-        }).map_err(|e| {
+        })
+        .map_err(|e| {
             error!("Error Subscribing: {}", e);
         });
 

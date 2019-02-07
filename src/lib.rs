@@ -3,7 +3,7 @@ extern crate failure;
 extern crate futures;
 extern crate mio;
 extern crate tokio;
-extern crate tmq_zmq as zmq;
+extern crate zmq;
 
 #[macro_use]
 extern crate log;
@@ -16,11 +16,11 @@ mod subscribe;
 mod poll;
 mod socket;
 
+pub use poll::Poller;
 pub use publish::{publish, Pub};
 pub use request::{request, Req};
 pub use respond::{respond, Rep, Responder};
-pub use subscribe::{subscribe, Sub};
 pub use socket::MioSocket;
-pub use poll::Poller;
+pub use subscribe::{subscribe, Sub};
 
 pub use zmq::{Context, Message, Result, Socket, SocketType};

@@ -30,7 +30,8 @@ fn main() {
         .for_each(|val| {
             info!("Response: {}", val.as_str().unwrap_or(""));
             Ok(())
-        }).map_err(|err| {
+        })
+        .map_err(|err| {
             error!("Error with request: {}", err);
         });
 
