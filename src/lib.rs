@@ -9,6 +9,8 @@ extern crate zmq;
 extern crate log;
 
 mod publish;
+mod pull;
+mod push;
 mod request;
 mod respond;
 mod subscribe;
@@ -18,6 +20,8 @@ mod socket;
 
 pub use poll::Poller;
 pub use publish::{publish, Pub};
+pub use pull::{pull, Pull};
+pub use push::{push, Push};
 pub use request::{request, Req};
 pub use respond::{respond, Rep, Responder};
 pub use socket::MioSocket;
