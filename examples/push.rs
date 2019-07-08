@@ -27,7 +27,6 @@ fn main() {
     let request = push(&Context::new())
         .connect("tcp://127.0.0.1:7899")
         .expect("Couldn't connect")
-        .finish()
         .send_all(make_msgs())
         .map(|_| ())
         .map_err(|e| {

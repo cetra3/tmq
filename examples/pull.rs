@@ -24,7 +24,6 @@ fn main() {
     let request = pull(&Context::new())
         .bind("tcp://127.0.0.1:7899")
         .expect("Couldn't bind")
-        .finish()
         .for_each(|val| {
             info!("Pull: {}", val.as_str().unwrap_or(""));
             Ok(())

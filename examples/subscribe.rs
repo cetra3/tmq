@@ -16,7 +16,7 @@ use std::env;
 
 fn main() {
     if let Err(_) = env::var("RUST_LOG") {
-        env::set_var("RUST_LOG", "subscribe=DEBUG");
+        env::set_var("RUST_LOG", "tmq=DEBUG,subscribe=DEBUG");
     }
 
     pretty_env_logger::init();
@@ -24,9 +24,16 @@ fn main() {
     let request = subscribe(&Context::new())
         .connect("tcp://127.0.0.1:7899")
         .expect("Couldn't connect")
-        .subscribe("")
+        .subscribe_mpart("TOPIC")
         .for_each(|val| {
-            info!("Subscribe: {}", val.as_str().unwrap_or(""));
+            info!(
+                "Subscribe, Number of messages:{}.  Messages:{}",
+                val.len(),
+                val.iter()
+                    .filter_map(|msg| msg.as_str())
+                    .collect::<Vec<&str>>()
+                    .join(", ")
+            );
             Ok(())
         })
         .map_err(|e| {

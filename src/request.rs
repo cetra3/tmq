@@ -1,3 +1,4 @@
+use crate::TmqMessage;
 use futures::Stream;
 use futures::{Async, Poll};
 
@@ -10,8 +11,8 @@ use futures::task;
 
 use zmq::{self, Context, SocketType};
 
-use poll::Poller;
-use socket::MioSocket;
+use crate::poll::Poller;
+use crate::socket::MioSocket;
 
 pub fn request(context: &Context) -> ReqBuilder {
     ReqBuilder { context }
@@ -46,7 +47,7 @@ impl<'a> ReqBuilder<'a> {
 }
 
 impl ReqBuilderBounded {
-    pub fn with<M: Into<zmq::Message>, S: Stream<Item = M, Error = Error>>(
+    pub fn with<M: Into<TmqMessage>, S: Stream<Item = M, Error = Error>>(
         self,
         stream: S,
     ) -> Req<M, S, PollEvented2<MioSocket>> {
@@ -58,7 +59,7 @@ impl ReqBuilderBounded {
     }
 }
 
-pub struct Req<M: Into<zmq::Message>, S: Stream<Item = M>, P: Poller> {
+pub struct Req<M: Into<TmqMessage>, S: Stream<Item = M>, P: Poller> {
     stream: S,
     socket: P,
     state: State,
@@ -66,8 +67,8 @@ pub struct Req<M: Into<zmq::Message>, S: Stream<Item = M>, P: Poller> {
 
 pub enum State {
     BeginSend,
-    Sending(zmq::Message),
-    Receiving(zmq::Message),
+    Sending(TmqMessage),
+    Receiving(TmqMessage),
     InPoll,
 }
 
@@ -82,7 +83,7 @@ impl fmt::Debug for State {
     }
 }
 
-impl<M: Into<zmq::Message>, S: Stream<Item = M, Error = Error>, P: Poller> Stream for Req<M, S, P> {
+impl<M: Into<TmqMessage>, S: Stream<Item = M, Error = Error>, P: Poller> Stream for Req<M, S, P> {
     type Item = zmq::Message;
     type Error = Error;
 
@@ -112,7 +113,7 @@ impl<M: Into<zmq::Message>, S: Stream<Item = M, Error = Error>, P: Poller> Strea
             State::Sending(msg) => match self.socket.send_message(&msg)? {
                 Async::Ready(_) => {
                     task::current().notify();
-                    self.state = State::Receiving(zmq::Message::new());
+                    self.state = State::Receiving(TmqMessage::Single(zmq::Message::new()));
                 }
                 Async::NotReady => {
                     self.state = State::Sending(msg);
@@ -123,7 +124,11 @@ impl<M: Into<zmq::Message>, S: Stream<Item = M, Error = Error>, P: Poller> Strea
                     task::current().notify();
 
                     self.state = State::BeginSend;
-                    return Ok(Async::Ready(Some(msg)));
+
+                    match msg {
+                        TmqMessage::Multipart(mut msgs) => return Ok(Async::Ready(msgs.pop())),
+                        TmqMessage::Single(msg) => return Ok(Async::Ready(Some(msg))),
+                    }
                 }
                 Async::NotReady => {
                     self.state = State::Receiving(msg);

@@ -25,10 +25,7 @@ fn main() {
     let responder = respond(&Context::new())
         .bind("tcp://127.0.0.1:7899")
         .expect("Couldn't bind address")
-        .with(|msg: Message| {
-            info!("Request: {}", msg.as_str().unwrap_or(""));
-            Ok(msg)
-        })
+        .with(echo)
         .map_err(|err| {
             error!("Error from server:{}", err);
         });
@@ -39,15 +36,16 @@ fn main() {
 //You can use a struct to respond by implementing the `Responder` trait
 pub struct EchoResponder {}
 
-impl Responder for EchoResponder {
-    type Output = FutureResult<Message, Error>;
+impl Responder<TmqMessage> for EchoResponder {
+    type Output = FutureResult<TmqMessage, Error>;
 
-    fn respond(&mut self, msg: Message) -> Self::Output {
-        return Ok(msg).into();
+    fn respond(&mut self, msg: TmqMessage) -> Self::Output {
+        return Ok(msg.into()).into();
     }
 }
 
 //Or you can use a free-floating function
+#[allow(unused)]
 fn echo(msg: Message) -> impl Future<Item = Message, Error = Error> {
     return ok(msg);
 }

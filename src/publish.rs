@@ -1,3 +1,4 @@
+use crate::TmqMessage;
 use futures::{task, Async, AsyncSink, Poll, Sink, StartSend};
 
 use tokio::reactor::PollEvented2;
@@ -8,8 +9,8 @@ use std::collections::VecDeque;
 
 use zmq::{self, Context, SocketType};
 
-use poll::Poller;
-use socket::MioSocket;
+use crate::poll::Poller;
+use crate::socket::MioSocket;
 
 pub fn publish(context: &Context) -> PubBuilder {
     PubBuilder { context }
@@ -19,47 +20,43 @@ pub struct PubBuilder<'a> {
     context: &'a Context,
 }
 
-pub struct PubBuilderBounded {
-    socket: MioSocket,
-}
-
 impl<'a> PubBuilder<'a> {
-    pub fn bind(self, endpoint: &str) -> Result<PubBuilderBounded, Error> {
+    pub fn bind<M: Into<TmqMessage>>(
+        self,
+        endpoint: &str,
+    ) -> Result<Pub<M, PollEvented2<MioSocket>>, Error> {
         let socket = self.context.socket(SocketType::PUB)?;
         socket.bind(endpoint)?;
 
-        Ok(PubBuilderBounded {
-            socket: socket.into(),
+        Ok(Pub {
+            socket: PollEvented2::new(socket.into()),
+            buffer: VecDeque::new(),
+            current: None,
         })
     }
 
-    pub fn connect(self, endpoint: &str) -> Result<PubBuilderBounded, Error> {
+    pub fn connect<M: Into<TmqMessage>>(
+        self,
+        endpoint: &str,
+    ) -> Result<Pub<M, PollEvented2<MioSocket>>, Error> {
         let socket = self.context.socket(SocketType::PUB)?;
         socket.connect(endpoint)?;
 
-        Ok(PubBuilderBounded {
-            socket: socket.into(),
+        Ok(Pub {
+            socket: PollEvented2::new(socket.into()),
+            buffer: VecDeque::new(),
+            current: None,
         })
     }
 }
 
-impl PubBuilderBounded {
-    pub fn finish<M: Into<zmq::Message>>(self) -> Pub<M, PollEvented2<MioSocket>> {
-        Pub {
-            socket: PollEvented2::new(self.socket),
-            buffer: VecDeque::new(),
-            current: None,
-        }
-    }
+pub struct Pub<M: Into<TmqMessage>, P: Poller> {
+    pub(crate) socket: P,
+    pub(crate) buffer: VecDeque<M>,
+    pub(crate) current: Option<TmqMessage>,
 }
 
-pub struct Pub<M: Into<zmq::Message>, P: Poller> {
-    socket: P,
-    buffer: VecDeque<M>,
-    current: Option<zmq::Message>,
-}
-
-impl<P: Poller, M: Into<zmq::Message>> Sink for Pub<M, P> {
+impl<P: Poller, M: Into<TmqMessage>> Sink for Pub<M, P> {
     type SinkItem = M;
     type SinkError = Error;
 
