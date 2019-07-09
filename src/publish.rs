@@ -12,6 +12,7 @@ use zmq::{self, Context, SocketType};
 use crate::poll::Poller;
 use crate::socket::MioSocket;
 
+/// Allows the `PUB` style socket to be created.  See the `publish` example
 pub fn publish(context: &Context) -> PubBuilder {
     PubBuilder { context }
 }
@@ -71,8 +72,6 @@ impl<P: Poller, M: Into<TmqMessage>> Sink for Pub<M, P> {
     }
 
     fn poll_complete(&mut self) -> Poll<(), Self::SinkError> {
-        debug!("Poll complete hit!");
-
         if let Some(msg) = self.current.take() {
             match self.socket.send_message(&msg)? {
                 Async::NotReady => {

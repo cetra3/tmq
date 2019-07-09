@@ -1,8 +1,6 @@
 use crate::publish::Pub;
 use crate::TmqMessage;
 
-pub type Push<M, P> = Pub<M, P>;
-
 use failure::Error;
 
 use tokio::reactor::PollEvented2;
@@ -12,6 +10,7 @@ use std::collections::VecDeque;
 use crate::socket::MioSocket;
 use zmq::{self, Context, SocketType};
 
+/// Allows the `PUSH` style socket to be created.  See the `push` example
 pub fn push(context: &Context) -> PushBuilder {
     PushBuilder { context }
 }

@@ -46,6 +46,6 @@ impl Responder<TmqMessage> for EchoResponder {
 
 //Or you can use a free-floating function
 #[allow(unused)]
-fn echo(msg: Message) -> impl Future<Item = Message, Error = Error> {
+fn echo(msg: TmqMessage) -> impl Future<Item = TmqMessage, Error = Error> {
     return ok(msg);
 }

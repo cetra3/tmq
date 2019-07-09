@@ -14,6 +14,7 @@ use zmq::{self, Context, SocketType};
 use crate::poll::Poller;
 use crate::socket::MioSocket;
 
+/// Allows the `REQ` style socket to be created.  See the `request` example
 pub fn request(context: &Context) -> ReqBuilder {
     ReqBuilder { context }
 }
@@ -84,7 +85,7 @@ impl fmt::Debug for State {
 }
 
 impl<M: Into<TmqMessage>, S: Stream<Item = M, Error = Error>, P: Poller> Stream for Req<M, S, P> {
-    type Item = zmq::Message;
+    type Item = TmqMessage;
     type Error = Error;
 
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
@@ -113,7 +114,7 @@ impl<M: Into<TmqMessage>, S: Stream<Item = M, Error = Error>, P: Poller> Stream 
             State::Sending(msg) => match self.socket.send_message(&msg)? {
                 Async::Ready(_) => {
                     task::current().notify();
-                    self.state = State::Receiving(TmqMessage::Single(zmq::Message::new()));
+                    self.state = State::Receiving(TmqMessage::default());
                 }
                 Async::NotReady => {
                     self.state = State::Sending(msg);
@@ -124,11 +125,7 @@ impl<M: Into<TmqMessage>, S: Stream<Item = M, Error = Error>, P: Poller> Stream 
                     task::current().notify();
 
                     self.state = State::BeginSend;
-
-                    match msg {
-                        TmqMessage::Multipart(mut msgs) => return Ok(Async::Ready(msgs.pop())),
-                        TmqMessage::Single(msg) => return Ok(Async::Ready(Some(msg))),
-                    }
+                    return Ok(Async::Ready(Some(msg)));
                 }
                 Async::NotReady => {
                     self.state = State::Receiving(msg);

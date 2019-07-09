@@ -1,3 +1,7 @@
+
+
+
+
 extern crate futures;
 extern crate pretty_env_logger;
 extern crate tmq;
@@ -27,8 +31,8 @@ fn main() {
         .connect("tcp://127.0.0.1:7899")
         .expect("Couldn't connect")
         .with(make_request(5))
-        .for_each(|val| {
-            info!("Response: {}", val.as_str().unwrap_or(""));
+        .for_each(|val: TmqMessage| {
+            info!("Response: {}", val);
             Ok(())
         })
         .map_err(|err| {
@@ -39,11 +43,11 @@ fn main() {
 }
 
 //Send some requests to the server
-fn make_request(count: usize) -> impl Stream<Item = Message, Error = Error> {
+fn make_request(count: usize) -> impl Stream<Item = TmqMessage, Error = Error> {
     let mut vec = Vec::new();
 
     for i in 0..count {
-        vec.push(Message::from(&format!("Request #{}", i)));
+        vec.push(TmqMessage::from(&format!("Request #{}", i)));
     }
 
     stream::iter_ok(vec)

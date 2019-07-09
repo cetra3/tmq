@@ -24,15 +24,12 @@ fn main() {
     let request = subscribe(&Context::new())
         .connect("tcp://127.0.0.1:7899")
         .expect("Couldn't connect")
-        .subscribe_mpart("TOPIC")
+        .subscribe("TOPIC")
         .for_each(|val| {
             info!(
-                "Subscribe, Number of messages:{}.  Messages:{}",
+                "Got {} Messages: {}",
                 val.len(),
-                val.iter()
-                    .filter_map(|msg| msg.as_str())
-                    .collect::<Vec<&str>>()
-                    .join(", ")
+                val
             );
             Ok(())
         })

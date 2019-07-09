@@ -37,7 +37,7 @@ fn main() {
 }
 
 //Set up a timer to broadcast every second.
-fn make_broadcast() -> impl Stream<Item = Vec<Message>, Error = Error> {
+fn make_broadcast() -> impl Stream<Item = TmqMessage, Error = Error> {
     let mut i = 0;
 
     Interval::new_interval(Duration::from_millis(1000))
@@ -46,10 +46,9 @@ fn make_broadcast() -> impl Stream<Item = Vec<Message>, Error = Error> {
             let message = format!("Broadcast #{}", i);
             info!("Publish: {}", message);
             vec![
-                Message::from("TOPIC"),
-                Message::from(&message),
-                Message::from("Another Message"),
-            ]
+                "TOPIC",
+                &message
+            ].into()
         })
         .from_err()
 }

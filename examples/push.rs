@@ -37,7 +37,7 @@ fn main() {
 }
 
 //Set up a timer to transmit every second.
-fn make_msgs() -> impl Stream<Item = Message, Error = Error> {
+fn make_msgs() -> impl Stream<Item = TmqMessage, Error = Error> {
     let mut i = 0;
 
     Interval::new_interval(Duration::from_millis(1000))
@@ -45,7 +45,7 @@ fn make_msgs() -> impl Stream<Item = Message, Error = Error> {
             i += 1;
             let message = format!("Push #{}", i);
             info!("Push: {}", message);
-            Message::from(&message)
+            TmqMessage::from(&message)
         })
         .from_err()
 }

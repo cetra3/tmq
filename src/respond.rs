@@ -1,5 +1,5 @@
-use crate::TmqMessage;
 use crate::socket::MioSocket;
+use crate::TmqMessage;
 use failure::Error;
 use futures::{Async, Poll};
 use futures::{Future, IntoFuture};
@@ -13,16 +13,48 @@ use std::{fmt, mem};
 
 use zmq::{self, Context, SocketType};
 
+/// Responder trait for `REP` style sockets. 
+/// 
+/// The Responder can return a future of any type that implements `Into<TmqMessage>`
+/// 
+/// ```rust
+/// # use tmq::*;
+/// # use failure::Error;
+/// # use futures::future::FutureResult;
+/// pub struct EchoResponder {}
+/// 
+/// impl Responder<TmqMessage> for EchoResponder {
+///     type Output = FutureResult<TmqMessage, Error>;
+/// 
+///     fn respond(&mut self, msg: TmqMessage) -> Self::Output {
+///         return FutureResult::from(Ok(msg));
+///     }
+/// }
+/// ```
+/// 
+/// Alternatively, you can use a free-standing function
+/// 
+/// ```rust
+/// # use tmq::*;
+/// # use failure::Error;
+/// # use futures::future::ok;
+/// # use futures::Future;
+/// fn echo(msg: TmqMessage) -> impl Future<Item = TmqMessage, Error = Error> {
+///   return ok(msg);
+/// }
+/// ```
+/// 
 pub trait Responder<T: Into<TmqMessage>> {
     type Output: Future<Item = T, Error = Error>;
     fn respond(&mut self, msg: T) -> Self::Output;
 }
 
+/// This allows functions and closures to implement the `Responder` trait if the message type implements `Into<TmqMessage>` and it returns an `IntoFuture<TmqMessage, Error>`
 impl<
         T: Into<TmqMessage>,
         I: IntoFuture<Future = F, Item = T, Error = Error>,
         F: Future<Item = T, Error = Error>,
-        M: FnMut(T) -> I
+        M: FnMut(T) -> I,
     > Responder<T> for M
 {
     type Output = F;
@@ -32,6 +64,7 @@ impl<
     }
 }
 
+/// Allows the `REP` style socket to be created.  See the `response` example
 pub fn respond(context: &Context) -> RepBuilder {
     RepBuilder { context }
 }
@@ -71,15 +104,15 @@ impl RepBuilderBounded {
         Rep {
             socket: PollEvented2::new(self.socket),
             state: State::InPoll,
-            responder
+            responder,
         }
     }
 }
 
 pub struct Rep<T: Into<TmqMessage>, R: Responder<T>, F: Future<Item = T, Error = Error>> {
     socket: PollEvented2<MioSocket>,
-    state: State<T,F>,
-    responder: R
+    state: State<T, F>,
+    responder: R,
 }
 
 pub enum State<T: Into<TmqMessage>, F: Future<Item = T, Error = Error>> {
@@ -100,8 +133,9 @@ impl<T: Into<TmqMessage>, F: Future<Item = T, Error = Error>> fmt::Debug for Sta
     }
 }
 
-
-impl<R: Responder<TmqMessage, Output = F>, F: Future<Item = TmqMessage, Error = Error>> Future for Rep<TmqMessage, R, F> {
+impl<R: Responder<TmqMessage, Output = F>, F: Future<Item = TmqMessage, Error = Error>> Future
+    for Rep<TmqMessage, R, F>
+{
     type Item = ();
     type Error = Error;
 
@@ -133,11 +167,7 @@ impl<R: Responder<TmqMessage, Output = F>, F: Future<Item = TmqMessage, Error = 
                 Async::Ready(_) => {
                     task::current().notify();
 
-                    let new_msg = match msg {
-                        TmqMessage::Single(_) => TmqMessage::Single(zmq::Message::new()),
-                        TmqMessage::Multipart(_) => TmqMessage::Multipart(Vec::new())
-                    };
-                    self.state = State::Receiving(new_msg);
+                    self.state = State::Receiving(msg);
                 }
                 Async::NotReady => {
                     self.state = State::Sending(msg);
@@ -150,7 +180,9 @@ impl<R: Responder<TmqMessage, Output = F>, F: Future<Item = TmqMessage, Error = 
     }
 }
 
-impl<R: Responder<zmq::Message, Output = F>, F: Future<Item = zmq::Message, Error = Error>> Future for Rep<zmq::Message, R, F> {
+impl<R: Responder<zmq::Message, Output = F>, F: Future<Item = zmq::Message, Error = Error>> Future
+    for Rep<zmq::Message, R, F>
+{
     type Item = ();
     type Error = Error;
 
@@ -164,14 +196,7 @@ impl<R: Responder<zmq::Message, Output = F>, F: Future<Item = zmq::Message, Erro
                 Async::Ready(_) => {
                     task::current().notify();
 
-                    let msg = match msg {
-                        TmqMessage::Single(msg) => msg,
-                        TmqMessage::Multipart(mut msg) => {
-                            msg.pop().unwrap_or_else(|| zmq::Message::new())
-                        }
-                    };
-
-                    self.state = State::RunningFuture(self.responder.respond(msg));
+                    self.state = State::RunningFuture(self.responder.respond(msg.into()));
                 }
                 Async::NotReady => {
                     self.state = State::Receiving(msg);
@@ -189,7 +214,7 @@ impl<R: Responder<zmq::Message, Output = F>, F: Future<Item = zmq::Message, Erro
             State::Sending(msg) => match self.socket.send_message(&msg)? {
                 Async::Ready(_) => {
                     task::current().notify();
-                    self.state = State::Receiving(TmqMessage::Single(zmq::Message::new()));
+                    self.state = State::Receiving(msg);
                 }
                 Async::NotReady => {
                     self.state = State::Sending(msg);
