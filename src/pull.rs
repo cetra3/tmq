@@ -1,28 +1,28 @@
-use futures::{Async, Poll, Stream};
+use futures::Stream;
+use tokio::reactor::PollEvented;
+use zmq::{self, Context as ZmqContext, SocketType};
 
-use tokio::reactor::PollEvented2;
+use crate::Multipart;
+use crate::poll::EventedSocket;
+use crate::Result;
+use crate::socket::SocketWrapper;
+use std::pin::Pin;
+use std::task::{Context, Poll};
 
-use failure::Error;
-
-use zmq::{self, Context, SocketType};
-
-use crate::poll::Poller;
-use crate::socket::MioSocket;
-
-pub fn pull(context: &Context) -> PullBuilder {
+pub fn pull(context: &ZmqContext) -> PullBuilder {
     PullBuilder { context }
 }
 
 pub struct PullBuilder<'a> {
-    context: &'a Context,
+    context: &'a ZmqContext,
 }
 
 pub struct PullBuilderBounded {
-    socket: MioSocket,
+    socket: zmq::Socket,
 }
 
 impl<'a> PullBuilder<'a> {
-    pub fn connect(self, endpoint: &str) -> Result<PullBuilderBounded, Error> {
+    pub fn connect(self, endpoint: &str) -> Result<PullBuilderBounded> {
         let socket = self.context.socket(SocketType::PULL)?;
         socket.connect(endpoint)?;
 
@@ -31,7 +31,7 @@ impl<'a> PullBuilder<'a> {
         })
     }
 
-    pub fn bind(self, endpoint: &str) -> Result<PullBuilderBounded, Error> {
+    pub fn bind(self, endpoint: &str) -> Result<PullBuilderBounded> {
         let socket = self.context.socket(SocketType::PULL)?;
         socket.bind(endpoint)?;
 
@@ -42,34 +42,21 @@ impl<'a> PullBuilder<'a> {
 }
 
 impl PullBuilderBounded {
-    pub fn finish(self) -> Pull<PollEvented2<MioSocket>> {
+    pub fn finish(self) -> Pull {
         Pull {
-            socket: PollEvented2::new(self.socket),
-            buffer: None,
+            socket: EventedSocket(PollEvented::new(SocketWrapper::new(self.socket)))
         }
     }
 }
 
-pub struct Pull<P: Poller> {
-    socket: P,
-    buffer: Option<zmq::Message>,
+pub struct Pull {
+    socket: EventedSocket,
 }
 
-impl<P: Poller> Stream for Pull<P> {
-    type Item = zmq::Message;
-    type Error = Error;
+impl Stream for Pull {
+    type Item = Result<Multipart>;
 
-    fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
-        log::debug!("Poll Hit!");
-
-        let mut buffer = self.buffer.take().unwrap_or_else(|| zmq::Message::new());
-
-        match self.socket.recv_message(&mut buffer)? {
-            Async::Ready(()) => return Ok(Async::Ready(Some(buffer))),
-            Async::NotReady => {
-                self.buffer = Some(buffer);
-                return Ok(Async::NotReady);
-            }
-        }
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<Self::Item>> {
+        self.socket.poll_receive_multipart(cx)
     }
 }

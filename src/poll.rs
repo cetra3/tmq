@@ -1,60 +1,47 @@
-use crate::socket::MioSocket;
-use failure::Error;
-use futures::{Async, Poll};
+use std::task::Context;
 
+use futures::{Poll, ready};
 use mio::Ready;
-use tokio::reactor::PollEvented2;
-
+use tokio::reactor::PollEvented;
 use zmq;
 
-pub trait Poller {
-    fn send_message(&self, msg: &zmq::Message) -> Poll<(), Error>;
+use crate::{Multipart, Result};
+use crate::socket::SocketWrapper;
 
-    fn recv_message(&self, msg: &mut zmq::Message) -> Poll<(), Error>;
-}
+pub(crate) struct EventedSocket(pub(crate) PollEvented<SocketWrapper>);
 
-impl Poller for PollEvented2<MioSocket> {
-    fn send_message(&self, msg: &zmq::Message) -> Poll<(), Error> {
-        match self.poll_write_ready()? {
-            Async::Ready(_) => {
-                //Send the message, and if it will block, then we set up a notifier
-                if let Err(e) = self.get_ref().io.send(&**msg, zmq::DONTWAIT) {
-                    if e == zmq::Error::EAGAIN {
-                        self.clear_write_ready()?;
-                        return Ok(Async::NotReady);
-                    } else {
-                        return Err(e.into());
-                    }
-                }
-                return Ok(Async::Ready(()));
-            }
-
-            //If it's not ready to send yet, then we basically need to hold onto the message and wait
-            Async::NotReady => {
-                return Ok(Async::NotReady);
-            }
-        }
-    }
-
-    fn recv_message(&self, msg: &mut zmq::Message) -> Poll<(), Error> {
+// TODO: define two streams - one for reading multipart messages, another for reading single
+// messages directly
+impl EventedSocket {
+    /// http://zguide.zeromq.org/page:all#Multipart-Messages
+    /// When one part of a multipart message has been received, all the others are received as well.
+    /// There should thus be no need to keep a buffer outside this method.
+    pub(crate) fn poll_receive_multipart(&mut self, cx: &mut Context) -> Poll<Option<Result<Multipart>>> {
         let ready = Ready::readable();
+        ready!(self.0.poll_read_ready(cx, ready))?;
 
-        match self.poll_read_ready(ready)? {
-            Async::Ready(_) => {
-                if let Err(e) = self.get_ref().io.recv(msg, zmq::DONTWAIT) {
-                    if e == zmq::Error::EAGAIN {
-                        self.clear_read_ready(ready)?;
-                        return Ok(Async::NotReady);
-                    } else {
-                        return Err(e.into());
+        let mut buffer = Multipart::new();
+        loop {
+            let mut msg = zmq::Message::new();
+            match self.0.get_ref().socket.recv(&mut msg, zmq::DONTWAIT) {
+                Ok(_) => {
+                    let more = msg.get_more();
+                    buffer.push(msg);
+                    if !more
+                    {
+                        break;
                     }
                 }
-
-                return Ok(Async::Ready(()));
-            }
-            Async::NotReady => {
-                return Ok(Async::NotReady);
+                Err(zmq::Error::EAGAIN) => {
+                    assert!(buffer.is_empty());
+                    self.0.clear_read_ready(cx, ready)?;
+                    return Poll::Pending;
+                },
+                Err(e) => return Poll::Ready(Some(Err(e.into())))
             }
         }
+
+        assert!(!buffer.is_empty());
+        return Poll::Ready(Some(Ok(buffer)));
     }
 }
