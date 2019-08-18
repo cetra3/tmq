@@ -1,30 +1,25 @@
-use futures::{task, Async, AsyncSink, Poll, Sink, StartSend};
+use zmq::{self, Context as ZmqContext, SocketType};
 
-use tokio::reactor::PollEvented2;
+use crate::poll::EventedSocket;
+use crate::{Result, TmqError, Multipart};
+use futures::Sink;
+use std::task::{Poll, Context};
+use std::pin::Pin;
 
-use failure::Error;
-
-use std::collections::VecDeque;
-
-use zmq::{self, Context, SocketType};
-
-use crate::poll::Poller;
-use crate::socket::MioSocket;
-
-pub fn push(context: &Context) -> PushBuilder {
+pub fn push(context: &ZmqContext) -> PushBuilder {
     PushBuilder { context }
 }
 
 pub struct PushBuilder<'a> {
-    context: &'a Context,
+    context: &'a ZmqContext,
 }
 
 pub struct PushBuilderBounded {
-    socket: MioSocket,
+    socket: zmq::Socket,
 }
 
 impl<'a> PushBuilder<'a> {
-    pub fn bind(self, endpoint: &str) -> Result<PushBuilderBounded, Error> {
+    pub fn bind(self, endpoint: &str) -> Result<PushBuilderBounded> {
         let socket = self.context.socket(SocketType::PUSH)?;
         socket.bind(endpoint)?;
 
@@ -33,7 +28,7 @@ impl<'a> PushBuilder<'a> {
         })
     }
 
-    pub fn connect(self, endpoint: &str) -> Result<PushBuilderBounded, Error> {
+    pub fn connect(self, endpoint: &str) -> Result<PushBuilderBounded> {
         let socket = self.context.socket(SocketType::PUSH)?;
         socket.connect(endpoint)?;
 
@@ -44,57 +39,52 @@ impl<'a> PushBuilder<'a> {
 }
 
 impl PushBuilderBounded {
-    pub fn finish<M: Into<zmq::Message>>(self) -> Push<M, PollEvented2<MioSocket>> {
+    pub fn finish(self) -> Push {
         Push {
-            socket: PollEvented2::new(self.socket),
-            buffer: VecDeque::new(),
-            current: None,
+            socket: EventedSocket::from_zmq_socket(self.socket),
+            buffer: None
         }
     }
 }
 
-pub struct Push<M: Into<zmq::Message>, P: Poller> {
-    socket: P,
-    buffer: VecDeque<M>,
-    current: Option<zmq::Message>,
+pub struct Push {
+    socket: EventedSocket,
+    buffer: Option<Multipart>
 }
 
-impl<P: Poller, M: Into<zmq::Message>> Sink for Push<M, P> {
-    type SinkItem = M;
-    type SinkError = Error;
+impl Sink<Multipart> for Push {
+    type Error = TmqError;
 
-    fn start_send(&mut self, item: Self::SinkItem) -> StartSend<Self::SinkItem, Self::SinkError> {
-        if self.current.is_none() {
-            self.current = Some(item.into());
-        } else {
-            self.buffer.push_back(item);
-        }
-
-        Ok(AsyncSink::Ready)
-    }
-
-    fn poll_complete(&mut self) -> Poll<(), Self::SinkError> {
-        log::debug!("Poll complete hit!");
-
-        if let Some(msg) = self.current.take() {
-            match self.socket.send_message(&msg)? {
-                Async::NotReady => {
-                    //Plop it back into our queue
-                    self.current = Some(msg);
-                    return Ok(Async::NotReady);
-                }
-                Async::Ready(()) => {
-                    if let Some(new_msg) = self.buffer.pop_front().map(|val| val.into()) {
-                        //Message was sent, add a notify to be polled once more to check whether there are any messages.
-                        task::current().notify();
-
-                        self.current = Some(new_msg);
-                        return Ok(Async::NotReady);
-                    }
-                }
+    fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<()>> {
+        if let Some(data) = self.buffer.take() {
+            self.buffer = self.socket.multipart_flush(cx, data)?;
+            match self.buffer {
+                Some(_) => return Poll::Pending,
+                None => {}
             }
         }
 
-        return Ok(Async::Ready(()));
+        self.socket.multipart_send_ready(cx)
+    }
+
+    fn start_send(mut self: Pin<&mut Self>, item: Multipart) -> Result<()> {
+        assert_eq!(self.buffer, None);
+        self.buffer = Some(item);
+        Ok(())
+    }
+
+    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<()>> {
+        if let Some(data) = self.buffer.take() {
+            self.buffer = self.socket.multipart_flush(cx, data)?;
+            match self.buffer {
+                Some(_) => return Poll::Pending,
+                None => return Poll::Ready(Ok(()))
+            }
+        }
+        Poll::Ready(Ok(()))
+    }
+
+    fn poll_close(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<()>> {
+        self.poll_flush(cx)
     }
 }

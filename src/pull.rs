@@ -1,11 +1,9 @@
 use futures::Stream;
-use tokio::reactor::PollEvented;
 use zmq::{self, Context as ZmqContext, SocketType};
 
 use crate::Multipart;
 use crate::poll::EventedSocket;
 use crate::Result;
-use crate::socket::SocketWrapper;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
@@ -44,7 +42,7 @@ impl<'a> PullBuilder<'a> {
 impl PullBuilderBounded {
     pub fn finish(self) -> Pull {
         Pull {
-            socket: EventedSocket(PollEvented::new(SocketWrapper::new(self.socket)))
+            socket: EventedSocket::from_zmq_socket(self.socket)
         }
     }
 }
@@ -57,6 +55,6 @@ impl Stream for Pull {
     type Item = Result<Multipart>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<Self::Item>> {
-        self.socket.poll_receive_multipart(cx)
+        self.socket.multipart_recv(cx)
     }
 }
