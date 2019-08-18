@@ -10,8 +10,8 @@ use futures::task;
 
 use zmq::{self, Context, SocketType};
 
-use poll::Poller;
-use socket::MioSocket;
+use crate::poll::Poller;
+use crate::socket::MioSocket;
 
 pub fn request(context: &Context) -> ReqBuilder {
     ReqBuilder { context }
@@ -87,7 +87,7 @@ impl<M: Into<zmq::Message>, S: Stream<Item = M, Error = Error>, P: Poller> Strea
     type Error = Error;
 
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
-        debug!("Req poll {:?}", self.state);
+        log::debug!("Req poll {:?}", self.state);
 
         let state = mem::replace(&mut self.state, State::InPoll);
 

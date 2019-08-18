@@ -1,11 +1,3 @@
-extern crate futures;
-extern crate pretty_env_logger;
-extern crate tmq;
-extern crate tokio;
-#[macro_use]
-extern crate log;
-extern crate failure;
-
 use futures::{Future, Sink, Stream};
 
 use failure::Error;
@@ -14,6 +6,7 @@ use tokio::timer::Interval;
 
 use tmq::*;
 
+use log::{error, info};
 use std::env;
 use std::time::Duration;
 

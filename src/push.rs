@@ -8,8 +8,8 @@ use std::collections::VecDeque;
 
 use zmq::{self, Context, SocketType};
 
-use poll::Poller;
-use socket::MioSocket;
+use crate::poll::Poller;
+use crate::socket::MioSocket;
 
 pub fn push(context: &Context) -> PushBuilder {
     PushBuilder { context }
@@ -74,7 +74,7 @@ impl<P: Poller, M: Into<zmq::Message>> Sink for Push<M, P> {
     }
 
     fn poll_complete(&mut self) -> Poll<(), Self::SinkError> {
-        debug!("Poll complete hit!");
+        log::debug!("Poll complete hit!");
 
         if let Some(msg) = self.current.take() {
             match self.socket.send_message(&msg)? {

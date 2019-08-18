@@ -6,6 +6,7 @@ license = "MIT/Apache-2.0"
 description = "ZeroMQ bindings for Tokio"
 repository = "https://github.com/cetra3/tmq"
 readme = "README.md"
+edition = "2018"
 
 [dependencies]
 futures = "0.1"

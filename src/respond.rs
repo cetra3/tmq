@@ -1,9 +1,9 @@
+use crate::socket::MioSocket;
 use failure::Error;
 use futures::{Async, Poll};
 use futures::{Future, IntoFuture};
-use socket::MioSocket;
 
-use poll::Poller;
+use crate::poll::Poller;
 use tokio::reactor::PollEvented2;
 
 use futures::task;
@@ -14,7 +14,7 @@ use zmq::{self, Context, SocketType};
 
 pub trait Responder {
     type Output: Future<Item = zmq::Message, Error = Error>;
-    fn respond(&mut self, zmq::Message) -> Self::Output;
+    fn respond(&mut self, _: zmq::Message) -> Self::Output;
 }
 
 impl<
@@ -104,7 +104,7 @@ impl<R: Responder<Output = F>, F: Future<Item = zmq::Message, Error = Error>> Fu
     type Error = Error;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        debug!("Rep poll {:?}", self.state);
+        log::debug!("Rep poll {:?}", self.state);
 
         let state = mem::replace(&mut self.state, State::InPoll);
 

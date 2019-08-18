@@ -6,8 +6,8 @@ use failure::Error;
 
 use zmq::{self, Context, SocketType};
 
-use poll::Poller;
-use socket::MioSocket;
+use crate::poll::Poller;
+use crate::socket::MioSocket;
 
 pub fn subscribe(context: &Context) -> SubBuilder {
     SubBuilder { context }
@@ -66,7 +66,7 @@ impl<P: Poller> Stream for Sub<P> {
     type Error = Error;
 
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
-        debug!("Poll Hit!");
+        log::debug!("Poll Hit!");
 
         let mut buffer = self.buffer.take().unwrap_or_else(|| zmq::Message::new());
 

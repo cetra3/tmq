@@ -1,6 +1,6 @@
+use crate::socket::MioSocket;
 use failure::Error;
 use futures::{Async, Poll};
-use socket::MioSocket;
 
 use mio::Ready;
 use tokio::reactor::PollEvented2;

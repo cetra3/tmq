@@ -1,11 +1,3 @@
-extern crate futures;
-extern crate pretty_env_logger;
-extern crate tmq;
-extern crate tokio;
-#[macro_use]
-extern crate log;
-extern crate failure;
-
 use failure::Error;
 use futures::future::ok;
 use futures::future::FutureResult;
@@ -13,6 +5,7 @@ use futures::Future;
 
 use tmq::*;
 
+use log::{error, info};
 use std::env;
 
 fn main() {

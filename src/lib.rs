@@ -1,13 +1,3 @@
-extern crate failure;
-
-extern crate futures;
-extern crate mio;
-extern crate tokio;
-extern crate zmq;
-
-#[macro_use]
-extern crate log;
-
 mod publish;
 mod pull;
 mod push;
@@ -18,13 +8,13 @@ mod subscribe;
 mod poll;
 mod socket;
 
-pub use poll::Poller;
-pub use publish::{publish, Pub};
-pub use pull::{pull, Pull};
-pub use push::{push, Push};
-pub use request::{request, Req};
-pub use respond::{respond, Rep, Responder};
-pub use socket::MioSocket;
-pub use subscribe::{subscribe, Sub};
+pub use crate::poll::Poller;
+pub use crate::publish::{publish, Pub};
+pub use crate::pull::{pull, Pull};
+pub use crate::push::{push, Push};
+pub use crate::request::{request, Req};
+pub use crate::respond::{respond, Rep, Responder};
+pub use crate::socket::MioSocket;
+pub use crate::subscribe::{subscribe, Sub};
 
 pub use zmq::{Context, Message, Result, Socket, SocketType};
