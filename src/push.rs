@@ -1,10 +1,11 @@
+use std::pin::Pin;
+use std::task::{Context, Poll};
+
+use futures::Sink;
 use zmq::{self, Context as ZmqContext, SocketType};
 
+use crate::{Multipart, Result, TmqError};
 use crate::poll::EventedSocket;
-use crate::{Result, TmqError, Multipart};
-use futures::Sink;
-use std::task::{Poll, Context};
-use std::pin::Pin;
 
 pub fn push(context: &ZmqContext) -> PushBuilder {
     PushBuilder { context }
@@ -56,15 +57,10 @@ impl Sink<Multipart> for Push {
     type Error = TmqError;
 
     fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<()>> {
-        if let Some(data) = self.buffer.take() {
-            self.buffer = self.socket.multipart_flush(cx, data)?;
-            match self.buffer {
-                Some(_) => return Poll::Pending,
-                None => {}
-            }
-        }
-
-        self.socket.multipart_send_ready(cx)
+        let buf = self.buffer.take();
+        let (poll, buffer) = self.socket.multipart_flush(cx, buf, true);
+        self.buffer = buffer;
+        poll
     }
 
     fn start_send(mut self: Pin<&mut Self>, item: Multipart) -> Result<()> {
@@ -74,14 +70,10 @@ impl Sink<Multipart> for Push {
     }
 
     fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<()>> {
-        if let Some(data) = self.buffer.take() {
-            self.buffer = self.socket.multipart_flush(cx, data)?;
-            match self.buffer {
-                Some(_) => return Poll::Pending,
-                None => return Poll::Ready(Ok(()))
-            }
-        }
-        Poll::Ready(Ok(()))
+        let buf = self.buffer.take();
+        let (poll, buffer) = self.socket.multipart_flush(cx, buf, false);
+        self.buffer = buffer;
+        poll
     }
 
     fn poll_close(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<()>> {
