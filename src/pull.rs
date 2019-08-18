@@ -1,8 +1,8 @@
 use futures::Stream;
 use zmq::{self, Context as ZmqContext, SocketType};
 
-use crate::Multipart;
 use crate::poll::EventedSocket;
+use crate::Multipart;
 use crate::Result;
 use std::pin::Pin;
 use std::task::{Context, Poll};
@@ -42,7 +42,7 @@ impl<'a> PullBuilder<'a> {
 impl PullBuilderBounded {
     pub fn finish(self) -> Pull {
         Pull {
-            socket: EventedSocket::from_zmq_socket(self.socket)
+            socket: EventedSocket::from_zmq_socket(self.socket),
         }
     }
 }

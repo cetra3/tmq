@@ -5,18 +5,20 @@ pub use zmq::{Context, Message, Socket, SocketType};
 
 pub use error::TmqError;
 
+pub use crate::dealer::dealer;
 pub use crate::message::Multipart;
 pub use crate::pull::pull;
 pub use crate::push::push;
 
+mod dealer;
 mod pull;
 mod push;
 
 //mod publish;
 mod error;
 mod message;
-mod socket;
 mod poll;
+mod socket;
 //mod request;
 //mod respond;
 //mod subscribe;

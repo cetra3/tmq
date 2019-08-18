@@ -1,12 +1,12 @@
 use std::task::Context;
 
-use futures::{Poll, ready};
+use futures::{ready, Poll};
 use mio::Ready;
 use tokio::reactor::PollEvented;
 use zmq;
 
-use crate::{Multipart, Result};
 use crate::socket::SocketWrapper;
+use crate::{Multipart, Result};
 
 /// Wrapper on top of a ZeroMQ socket, implements functions for asynchronous reading and writing
 /// of multipart messages.
@@ -14,8 +14,7 @@ pub(crate) struct EventedSocket(pub(crate) PollEvented<SocketWrapper>);
 
 impl EventedSocket {
     /// Creates a new `EventedSocket` from a ZeroMQ socket.
-    pub(crate) fn from_zmq_socket(socket: zmq::Socket) -> Self
-    {
+    pub(crate) fn from_zmq_socket(socket: zmq::Socket) -> Self {
         Self(PollEvented::new(SocketWrapper::new(socket)))
     }
 
@@ -37,8 +36,7 @@ impl EventedSocket {
                 Ok(_) => {
                     let more = msg.get_more();
                     buffer.push_back(msg);
-                    if !more
-                    {
+                    if !more {
                         break;
                     }
                 }
@@ -46,8 +44,8 @@ impl EventedSocket {
                     assert!(buffer.is_empty());
                     self.0.clear_read_ready(cx, ready)?;
                     return Poll::Pending;
-                },
-                Err(e) => return Poll::Ready(Some(Err(e.into())))
+                }
+                Err(e) => return Poll::Ready(Some(Err(e.into()))),
             }
         }
 
@@ -70,7 +68,11 @@ impl EventedSocket {
     /// attempted to be written the next time the socket is polled.
     ///
     /// If no message was written, the write flag is cleared.
-    pub(crate) fn multipart_send(&mut self, cx: &mut Context, mut item: Multipart) -> Result<Option<Multipart>> {
+    pub(crate) fn multipart_send(
+        &mut self,
+        cx: &mut Context,
+        mut item: Multipart,
+    ) -> Result<Option<Multipart>> {
         let len = item.len();
         while let Some(msg) = item.pop_front() {
             let mut flags = zmq::DONTWAIT;
@@ -79,16 +81,17 @@ impl EventedSocket {
             }
 
             match self.0.get_ref().socket.send(&*msg, flags) {
-                Ok(_) => {},
+                Ok(_) => {}
                 Err(zmq::Error::EAGAIN) => {
                     item.push_front(msg);
 
-                    if item.len() == len {  // nothing was written
+                    if item.len() == len {
+                        // nothing was written
                         self.0.clear_write_ready(cx)?;
                     }
                     return Ok(Some(item));
-                },
-                Err(e) => return Err(e.into())
+                }
+                Err(e) => return Err(e.into()),
             }
         }
 
@@ -101,9 +104,12 @@ impl EventedSocket {
     ///
     /// If `poll` is true, this function will also register a write notification by calling
     /// `multipart_poll_write_flag`.
-    pub(crate) fn multipart_flush(&mut self, cx: &mut Context,
-                                  buffer: Option<Multipart>,
-                                  poll: bool) -> (Poll<Result<()>>, Option<Multipart>) {
+    pub(crate) fn multipart_flush(
+        &mut self,
+        cx: &mut Context,
+        buffer: Option<Multipart>,
+        poll: bool,
+    ) -> (Poll<Result<()>>, Option<Multipart>) {
         // If we have some data in the buffer, attempt to send them.
         if let Some(data) = buffer {
             match self.multipart_send(cx, data) {
@@ -114,15 +120,14 @@ impl EventedSocket {
                         None => {}
                     }
                 }
-                Err(e) => return (Poll::Ready(Err(e)), None)
+                Err(e) => return (Poll::Ready(Err(e)), None),
             }
         }
 
         // register write event notification
         if poll {
             (self.multipart_poll_write_flag(cx), None)
-        }
-        else {
+        } else {
             (Poll::Ready(Ok(())), None)
         }
     }

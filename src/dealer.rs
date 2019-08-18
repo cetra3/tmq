@@ -1,59 +1,67 @@
-use std::pin::Pin;
-use std::task::{Context, Poll};
-
-use futures::Sink;
+use futures::{Sink, Stream};
 use zmq::{self, Context as ZmqContext, SocketType};
 
 use crate::poll::EventedSocket;
-use crate::{Multipart, Result, TmqError};
+use crate::Result;
+use crate::{Multipart, TmqError};
+use std::pin::Pin;
+use std::task::{Context, Poll};
 
-pub fn push(context: &ZmqContext) -> PushBuilder {
-    PushBuilder { context }
+pub fn dealer(context: &ZmqContext) -> DealerBuilder {
+    DealerBuilder { context }
 }
 
-pub struct PushBuilder<'a> {
+pub struct DealerBuilder<'a> {
     context: &'a ZmqContext,
 }
 
-pub struct PushBuilderBounded {
+pub struct DealerBuilderBounded {
     socket: zmq::Socket,
 }
 
-impl<'a> PushBuilder<'a> {
-    pub fn bind(self, endpoint: &str) -> Result<PushBuilderBounded> {
-        let socket = self.context.socket(SocketType::PUSH)?;
-        socket.bind(endpoint)?;
+impl<'a> DealerBuilder<'a> {
+    pub fn connect(self, endpoint: &str) -> Result<DealerBuilderBounded> {
+        let socket = self.context.socket(SocketType::DEALER)?;
+        socket.connect(endpoint)?;
 
-        Ok(PushBuilderBounded {
+        Ok(DealerBuilderBounded {
             socket: socket.into(),
         })
     }
 
-    pub fn connect(self, endpoint: &str) -> Result<PushBuilderBounded> {
-        let socket = self.context.socket(SocketType::PUSH)?;
-        socket.connect(endpoint)?;
+    pub fn bind(self, endpoint: &str) -> Result<DealerBuilderBounded> {
+        let socket = self.context.socket(SocketType::DEALER)?;
+        socket.bind(endpoint)?;
 
-        Ok(PushBuilderBounded {
+        Ok(DealerBuilderBounded {
             socket: socket.into(),
         })
     }
 }
 
-impl PushBuilderBounded {
-    pub fn finish(self) -> Push {
-        Push {
+impl DealerBuilderBounded {
+    pub fn finish(self) -> Dealer {
+        Dealer {
             socket: EventedSocket::from_zmq_socket(self.socket),
             buffer: None,
         }
     }
 }
 
-pub struct Push {
+pub struct Dealer {
     socket: EventedSocket,
     buffer: Option<Multipart>,
 }
 
-impl Sink<Multipart> for Push {
+impl Stream for Dealer {
+    type Item = Result<Multipart>;
+
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<Self::Item>> {
+        self.socket.multipart_recv(cx)
+    }
+}
+
+impl Sink<Multipart> for Dealer {
     type Error = TmqError;
 
     fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<()>> {

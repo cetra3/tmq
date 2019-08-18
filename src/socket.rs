@@ -1,7 +1,7 @@
 use std::io;
 
-use mio::{Evented, Poll, PollOpt, Ready, Token};
 use mio::unix::EventedFd;
+use mio::{Evented, Poll, PollOpt, Ready, Token};
 
 pub(crate) struct SocketWrapper {
     pub(crate) socket: zmq::Socket,
