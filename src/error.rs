@@ -3,9 +3,13 @@ quick_error! {
     pub enum TmqError {
         Zmq(err: zmq::Error) {
             from()
+            cause(err)
+            description(err.description())
         }
         Io(err: std::io::Error) {
             from()
+            cause(err)
+            description(err.description())
         }
     }
 }
