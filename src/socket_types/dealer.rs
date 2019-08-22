@@ -15,31 +15,16 @@ pub struct DealerBuilder<'a> {
     context: &'a ZmqContext,
 }
 
-pub struct DealerBuilderBounded {
+impl<'a> DealerBuilder<'a> {
+    build_connect!(DEALER, DealerBuilderBound);
+    build_bind!(DEALER, DealerBuilderBound);
+}
+
+pub struct DealerBuilderBound {
     socket: zmq::Socket,
 }
 
-impl<'a> DealerBuilder<'a> {
-    pub fn connect(self, endpoint: &str) -> Result<DealerBuilderBounded> {
-        let socket = self.context.socket(SocketType::DEALER)?;
-        socket.connect(endpoint)?;
-
-        Ok(DealerBuilderBounded {
-            socket: socket.into(),
-        })
-    }
-
-    pub fn bind(self, endpoint: &str) -> Result<DealerBuilderBounded> {
-        let socket = self.context.socket(SocketType::DEALER)?;
-        socket.bind(endpoint)?;
-
-        Ok(DealerBuilderBounded {
-            socket: socket.into(),
-        })
-    }
-}
-
-impl DealerBuilderBounded {
+impl DealerBuilderBound {
     pub fn finish(self) -> Dealer {
         Dealer {
             socket: EventedSocket::from_zmq_socket(self.socket),

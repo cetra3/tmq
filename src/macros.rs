@@ -17,9 +17,9 @@ macro_rules! impl_sink {
             }
 
             fn start_send(mut self: std::pin::Pin<&mut Self>, item: T) -> crate::Result<()> {
-                assert_eq!(self.buffer, None);
-                self.$buffer = Some(item.into());
-                Ok(())
+                assert_eq!(self.buffer, std::option::Option::None);
+                self.$buffer = std::option::Option::Some(item.into());
+                crate::Result::Ok(())
             }
 
             fn poll_flush(
@@ -57,4 +57,42 @@ macro_rules! impl_stream {
             }
         }
     };
+}
+
+/// Implements a connect builder method with the given $socket_type.
+/// The type on which the method is implemented should have a field `context` of type
+/// `&zmq::Context`.
+///
+/// Returns a `Result<$result_type>`. The result type should have a single field `socket` of
+/// type `zmq::Socket`.
+macro_rules! build_connect {
+    ($socket_type: ident, $result_type: tt) => {
+        pub fn connect(self, endpoint: &str) -> crate::Result<$result_type> {
+            let socket = self.context.socket(zmq::SocketType::$socket_type)?;
+            socket.connect(endpoint)?;
+
+            crate::Result::Ok($result_type {
+                socket: socket.into(),
+            })
+        }
+    }
+}
+
+/// Implements a bind builder method with the given $socket_type.
+/// The type on which the method is implemented should have a field `context` of type
+/// `&zmq::Context`.
+///
+/// Returns a `Result<$result_type>`. The result type should have a single field `socket` of
+/// type `zmq::Socket`.
+macro_rules! build_bind {
+    ($socket_type: ident, $result_type: tt) => {
+        pub fn bind(self, endpoint: &str) -> crate::Result<$result_type> {
+            let socket = self.context.socket(zmq::SocketType::$socket_type)?;
+            socket.bind(endpoint)?;
+
+            crate::Result::Ok($result_type {
+                socket: socket.into(),
+            })
+        }
+    }
 }

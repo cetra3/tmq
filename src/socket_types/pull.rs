@@ -15,31 +15,15 @@ pub struct PullBuilder<'a> {
     context: &'a ZmqContext,
 }
 
-pub struct PullBuilderBounded {
+impl<'a> PullBuilder<'a> {
+    build_bind!(PULL, PullBuilderBound);
+}
+
+pub struct PullBuilderBound {
     socket: zmq::Socket,
 }
 
-impl<'a> PullBuilder<'a> {
-    pub fn connect(self, endpoint: &str) -> Result<PullBuilderBounded> {
-        let socket = self.context.socket(SocketType::PULL)?;
-        socket.connect(endpoint)?;
-
-        Ok(PullBuilderBounded {
-            socket: socket.into(),
-        })
-    }
-
-    pub fn bind(self, endpoint: &str) -> Result<PullBuilderBounded> {
-        let socket = self.context.socket(SocketType::PULL)?;
-        socket.bind(endpoint)?;
-
-        Ok(PullBuilderBounded {
-            socket: socket.into(),
-        })
-    }
-}
-
-impl PullBuilderBounded {
+impl PullBuilderBound {
     pub fn finish(self) -> Pull {
         Pull {
             socket: EventedSocket::from_zmq_socket(self.socket),
@@ -49,12 +33,6 @@ impl PullBuilderBounded {
 
 pub struct Pull {
     socket: EventedSocket,
-}
-
-impl Pull {
-    pub fn get_socket(&self) -> &zmq::Socket {
-        &self.socket.0.get_ref().socket
-    }
 }
 
 impl_stream!(Pull, socket);

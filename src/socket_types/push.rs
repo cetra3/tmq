@@ -15,31 +15,15 @@ pub struct PushBuilder<'a> {
     context: &'a ZmqContext,
 }
 
-pub struct PushBuilderBounded {
+impl<'a> PushBuilder<'a> {
+    build_connect!(PUSH, PushBuilderBound);
+}
+
+pub struct PushBuilderBound {
     socket: zmq::Socket,
 }
 
-impl<'a> PushBuilder<'a> {
-    pub fn bind(self, endpoint: &str) -> Result<PushBuilderBounded> {
-        let socket = self.context.socket(SocketType::PUSH)?;
-        socket.bind(endpoint)?;
-
-        Ok(PushBuilderBounded {
-            socket: socket.into(),
-        })
-    }
-
-    pub fn connect(self, endpoint: &str) -> Result<PushBuilderBounded> {
-        let socket = self.context.socket(SocketType::PUSH)?;
-        socket.connect(endpoint)?;
-
-        Ok(PushBuilderBounded {
-            socket: socket.into(),
-        })
-    }
-}
-
-impl PushBuilderBounded {
+impl PushBuilderBound {
     pub fn finish(self) -> Push {
         Push {
             socket: EventedSocket::from_zmq_socket(self.socket),
