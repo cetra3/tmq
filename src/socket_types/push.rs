@@ -1,11 +1,6 @@
-use std::pin::Pin;
-use std::task::{Context, Poll};
+use zmq::{self, Context as ZmqContext};
 
-use futures::Sink;
-use zmq::{self, Context as ZmqContext, SocketType};
-
-use crate::poll::EventedSocket;
-use crate::{Multipart, Result};
+use crate::{poll::EventedSocket, Multipart};
 
 pub fn push(context: &ZmqContext) -> PushBuilder {
     PushBuilder { context }
@@ -37,4 +32,5 @@ pub struct Push {
     buffer: Option<Multipart>,
 }
 
+impl_socket!(Push, socket);
 impl_sink!(Push, socket, buffer);

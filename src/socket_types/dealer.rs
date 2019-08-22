@@ -1,11 +1,6 @@
-use futures::{Sink, Stream};
-use zmq::{self, Context as ZmqContext, SocketType};
+use zmq::{self, Context as ZmqContext};
 
-use crate::poll::EventedSocket;
-use crate::Result;
-use crate::{Multipart, TmqError};
-use std::pin::Pin;
-use std::task::{Context, Poll};
+use crate::{poll::EventedSocket, Multipart};
 
 pub fn dealer(context: &ZmqContext) -> DealerBuilder {
     DealerBuilder { context }
@@ -38,5 +33,6 @@ pub struct Dealer {
     buffer: Option<Multipart>,
 }
 
+impl_socket!(Dealer, socket);
 impl_stream!(Dealer, socket);
 impl_sink!(Dealer, socket, buffer);

@@ -1,11 +1,6 @@
-use futures::Stream;
-use zmq::{self, Context as ZmqContext, SocketType};
+use zmq::{self, Context as ZmqContext};
 
 use crate::poll::EventedSocket;
-use crate::Multipart;
-use crate::Result;
-use std::pin::Pin;
-use std::task::{Context, Poll};
 
 pub fn pull(context: &ZmqContext) -> PullBuilder {
     PullBuilder { context }
@@ -35,4 +30,5 @@ pub struct Pull {
     socket: EventedSocket,
 }
 
+impl_socket!(Pull, socket);
 impl_stream!(Pull, socket);

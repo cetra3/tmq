@@ -1,3 +1,16 @@
+/// Implements AsZmqSocket for the given type.
+/// $socket: identifier of a field containing an `EventedSocket`
+macro_rules! impl_socket {
+    ($type: ty, $socket: ident) => {
+        impl crate::socket::AsZmqSocket for $type {
+            #[inline]
+            fn get_socket(&self) -> &zmq::Socket {
+                &self.$socket.0.get_ref().socket
+            }
+        }
+    };
+}
+
 /// Implements Sink<T: Into<Multipart>> for the given type.
 /// $socket: identifier of a field containing an `EventedSocket`
 /// $buffer: identifier of af ield containing `Option<Multipart>`
