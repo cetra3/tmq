@@ -5,7 +5,7 @@ use futures::Sink;
 use zmq::{self, Context as ZmqContext, SocketType};
 
 use crate::poll::EventedSocket;
-use crate::{Multipart, Result, TmqError};
+use crate::{Multipart, Result};
 
 pub fn push(context: &ZmqContext) -> PushBuilder {
     PushBuilder { context }
@@ -53,30 +53,4 @@ pub struct Push {
     buffer: Option<Multipart>,
 }
 
-impl Sink<Multipart> for Push {
-    type Error = TmqError;
-
-    fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<()>> {
-        let buf = self.buffer.take();
-        let (poll, buffer) = self.socket.multipart_flush(cx, buf, true);
-        self.buffer = buffer;
-        poll
-    }
-
-    fn start_send(mut self: Pin<&mut Self>, item: Multipart) -> Result<()> {
-        assert_eq!(self.buffer, None);
-        self.buffer = Some(item);
-        Ok(())
-    }
-
-    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<()>> {
-        let buf = self.buffer.take();
-        let (poll, buffer) = self.socket.multipart_flush(cx, buf, false);
-        self.buffer = buffer;
-        poll
-    }
-
-    fn poll_close(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<()>> {
-        self.poll_flush(cx)
-    }
-}
+impl_sink!(Push, socket, buffer);

@@ -1,31 +1,22 @@
 #[macro_use]
 extern crate quick_error;
 
-pub use zmq::{Context, Message, Socket, SocketType};
+#[macro_use]
+mod macros;
 
-pub use error::TmqError;
-
-pub use crate::dealer::dealer;
-pub use crate::message::Multipart;
-pub use crate::pull::pull;
-pub use crate::push::push;
-
-mod dealer;
-mod pull;
-mod push;
-
-//mod publish;
 mod error;
 mod message;
 mod poll;
 mod socket;
-//mod request;
-//mod respond;
-//mod subscribe;
+mod socket_types;
 
 pub type Result<T> = std::result::Result<T, TmqError>;
 
-//pub use crate::request::{request, Req};
-//pub use crate::respond::{respond, Rep, Responder};
-//pub use crate::socket::MioSocket;
-//pub use crate::subscribe::{subscribe, Sub};
+/// External re-exports
+pub use zmq::{Context, Message};
+
+/// Internal re-exports
+pub use crate::message::Multipart;
+pub use error::TmqError;
+
+pub use socket_types::*;

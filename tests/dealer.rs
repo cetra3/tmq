@@ -151,7 +151,7 @@ async fn proxy_interleaved() -> Result<()> {
     for i in 0..count {
         let m1 = format!("Msg #{}", i);
         let m2 = format!("Msg #{} (contd.)", i);
-        sock.send(vec![msg(m1.as_bytes()), msg(m2.as_bytes())].into())
+        sock.send(vec![msg(m1.as_bytes()), msg(m2.as_bytes())])
             .await?;
         if let Some(multipart) = sock.next().await {
             let multipart = multipart?;

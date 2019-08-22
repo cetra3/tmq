@@ -51,10 +51,10 @@ pub struct Pull {
     socket: EventedSocket,
 }
 
-impl Stream for Pull {
-    type Item = Result<Multipart>;
-
-    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<Self::Item>> {
-        self.socket.multipart_recv(cx)
+impl Pull {
+    pub fn get_socket(&self) -> &zmq::Socket {
+        &self.socket.0.get_ref().socket
     }
 }
+
+impl_stream!(Pull, socket);
