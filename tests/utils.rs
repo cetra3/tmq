@@ -38,8 +38,7 @@ pub fn sync_send_multipart_repeated(
             let msg = multipart
                 .clone()
                 .into_iter()
-                .map(|i| i.into())
-                .collect::<Vec<zmq::Message>>();
+                .map(|i| Into::<zmq::Message>::into(i));
             socket.send_multipart(msg, 0).unwrap();
         }
     })

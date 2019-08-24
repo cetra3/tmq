@@ -2,7 +2,11 @@
 
 use zmq::{Context, SocketType};
 
-use tmq::{push, Result};
+use futures::SinkExt;
+use std::thread::spawn;
+use std::time::Duration;
+use tmq::{push, Result, SocketExt};
+use tokio::future::FutureExt;
 use utils::{
     generate_tcp_addres, msg, send_multipart_repeated, send_multiparts,
     sync_receive_multipart_repeated, sync_receive_multiparts,
@@ -99,6 +103,42 @@ async fn send_hammer() -> Result<()> {
 
     send_multipart_repeated(sock, vec![b"hello".to_vec(), b"world".to_vec()], count).await?;
 
+    thread.join().unwrap();
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn send_delayed() -> Result<()> {
+    let address = generate_tcp_addres();
+    let ctx = Context::new();
+    let mut sock = push(&ctx).connect(&address)?.finish();
+
+    // set send high water mark to a single message
+    sock.set_sndhwm(1).unwrap();
+
+    // send a single message, now the send buffer should be full
+    sock.send(vec![msg(b"hello")]).await?;
+
+    // assert that send will block now
+    assert!(sock
+        .send(vec!(msg(b"world")))
+        .timeout(Duration::from_millis(200))
+        .await
+        .is_err());
+
+    // start the receiver
+    let thread = spawn(move || {
+        let ctx = Context::new();
+        let socket = ctx.socket(SocketType::PULL).unwrap();
+        socket.bind(&address).unwrap();
+
+        for _ in 0..3 {
+            socket.recv_multipart(0).unwrap();
+        }
+    });
+
+    sock.send(vec![msg(b"world")]).await?;
     thread.join().unwrap();
 
     Ok(())

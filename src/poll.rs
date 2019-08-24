@@ -32,7 +32,7 @@ impl EventedSocket {
         let mut buffer = Multipart::new();
         loop {
             let mut msg = zmq::Message::new();
-            match self.0.get_ref().socket.recv(&mut msg, zmq::DONTWAIT) {
+            match self.get_socket().recv(&mut msg, zmq::DONTWAIT) {
                 Ok(_) => {
                     let more = msg.get_more();
                     buffer.push_back(msg);
@@ -74,13 +74,16 @@ impl EventedSocket {
         mut item: Multipart,
     ) -> Result<Option<Multipart>> {
         let len = item.len();
+
+        // The events of the socket must be picked up before the send.
+        self.get_socket().get_events()?;
         while let Some(msg) = item.pop_front() {
             let mut flags = zmq::DONTWAIT;
             if !item.is_empty() {
                 flags |= zmq::SNDMORE;
             }
 
-            match self.0.get_ref().socket.send(&*msg, flags) {
+            match self.get_socket().send(&*msg, flags) {
                 Ok(_) => {}
                 Err(zmq::Error::EAGAIN) => {
                     item.push_front(msg);
@@ -130,5 +133,9 @@ impl EventedSocket {
         } else {
             (Poll::Ready(Ok(())), None)
         }
+    }
+
+    fn get_socket(&self) -> &zmq::Socket {
+        &self.0.get_ref().socket
     }
 }
