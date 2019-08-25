@@ -1,6 +1,6 @@
 use zmq::{self, Context as ZmqContext};
 
-use crate::{poll::EventedSocket, Multipart};
+use crate::poll::EventedSocket;
 
 pub fn push(context: &ZmqContext) -> PushBuilder {
     PushBuilder { context }

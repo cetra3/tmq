@@ -1,6 +1,6 @@
 use zmq::{self, Context as ZmqContext};
 
-use crate::{poll::EventedSocket, Multipart};
+use crate::poll::EventedSocket;
 
 pub fn dealer(context: &ZmqContext) -> DealerBuilder {
     DealerBuilder { context }

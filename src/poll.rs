@@ -12,7 +12,7 @@ use crate::{Multipart, Result};
 /// of multipart messages.
 pub(crate) struct EventedSocket {
     socket: PollEvented<SocketWrapper>,
-    buffer: Multipart
+    buffer: Multipart,
 }
 
 impl EventedSocket {
@@ -20,7 +20,7 @@ impl EventedSocket {
     pub(crate) fn from_zmq_socket(socket: zmq::Socket) -> Self {
         Self {
             socket: PollEvented::new(SocketWrapper::new(socket)),
-            buffer: Multipart::new()
+            buffer: Multipart::new(),
         }
     }
 
@@ -31,9 +31,15 @@ impl EventedSocket {
     /// has been received, all the others are already available as well).
     ///
     /// If nothing was received, the read flag is cleared.
-    pub(crate) fn multipart_recv(&mut self, cx: &mut Context) -> Poll<Option<Result<Multipart>>> {
-        let ready = Ready::readable();
-        ready!(self.socket.poll_read_ready(cx, ready))?;
+    pub(crate) fn multipart_recv(
+        &mut self,
+        cx: &mut Context<'_>,
+    ) -> Poll<Option<Result<Multipart>>> {
+        let events = self.get_socket().get_events()?;
+        if !events.contains(zmq::POLLIN) {
+            self.socket.clear_read_ready(cx, Ready::readable())?;
+            return Poll::Pending;
+        }
 
         let mut buffer = Multipart::new();
         loop {
@@ -47,8 +53,7 @@ impl EventedSocket {
                     }
                 }
                 Err(zmq::Error::EAGAIN) => {
-                    assert!(buffer.is_empty());
-                    self.socket.clear_read_ready(cx, ready)?;
+                    assert!(false);
                     return Poll::Pending;
                 }
                 Err(e) => return Poll::Ready(Some(Err(e.into()))),
@@ -57,13 +62,6 @@ impl EventedSocket {
 
         assert!(!buffer.is_empty());
         return Poll::Ready(Some(Ok(buffer)));
-    }
-
-    /// Register a write notification on this socket.
-    /// The socket will be polled once a write can be performed.
-    pub(crate) fn multipart_poll_write_flag(&mut self, cx: &mut Context) -> Poll<Result<()>> {
-        ready!(self.socket.poll_write_ready(cx))?;
-        Poll::Ready(Ok(()))
     }
 
     /// Store a multipart that should be sent during the next flush.
@@ -80,12 +78,7 @@ impl EventedSocket {
     /// attempted to be written the next time the socket is polled.
     ///
     /// If no message was written, the write flag is cleared.
-    pub(crate) fn multipart_send(
-        &mut self,
-        cx: &mut Context,
-    ) -> Result<()> {
-        let len = self.buffer.len();
-
+    pub(crate) fn multipart_send(&mut self) -> Poll<Result<()>> {
         while let Some(msg) = self.buffer.pop_front() {
             let mut flags = zmq::DONTWAIT;
             if !self.buffer.is_empty() {
@@ -96,20 +89,13 @@ impl EventedSocket {
                 Ok(_) => {}
                 Err(zmq::Error::EAGAIN) => {
                     self.buffer.push_front(msg);
-
-                    if self.buffer.len() == len {
-                        // nothing was written
-                        self.socket.clear_write_ready(cx)?;
-                    }
-                    // The events of the socket must be picked up after EAGAIN
-                    self.get_socket().get_events()?;
-                    return Ok(());
+                    return Poll::Pending;
                 }
-                Err(e) => return Err(e.into()),
+                Err(e) => return Poll::Ready(Err(e.into())),
             }
         }
 
-        Ok(())
+        Poll::Ready(Ok(()))
     }
 
     /// Flush the message buffer if there are any messages.
@@ -118,21 +104,24 @@ impl EventedSocket {
     ///
     /// If `poll` is true, this function will also register a write notification by calling
     /// `multipart_poll_write_flag`.
-    pub(crate) fn multipart_flush(
-        &mut self,
-        cx: &mut Context,
-    ) -> Poll<Result<()>> {
-        // If we have some data in the buffer, attempt to send them.
-        ready!(self.multipart_poll_write_flag(cx))?;
-
-        if !self.buffer.is_empty() {
-            self.multipart_send(cx)?;
-            if !self.buffer.is_empty() {
-                return Poll::Pending;
-            }
+    pub(crate) fn multipart_flush(&mut self, cx: &mut Context<'_>) -> Poll<Result<()>> {
+        while !self.buffer.is_empty() {
+            ready!(self.multipart_poll_ready(cx))?;
+            ready!(self.multipart_send())?;
         }
 
+        assert!(self.buffer.is_empty());
         Poll::Ready(Ok(()))
+    }
+
+    pub(crate) fn multipart_poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<()>> {
+        let events = self.get_socket().get_events()?;
+        if events.contains(zmq::POLLOUT) {
+            Poll::Ready(Ok(()))
+        } else {
+            self.socket.clear_read_ready(cx, Ready::readable())?;
+            return Poll::Ready(Ok(()));
+        }
     }
 
     pub(crate) fn get_socket(&self) -> &zmq::Socket {

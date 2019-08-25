@@ -23,7 +23,8 @@ macro_rules! impl_sink {
                 mut self: std::pin::Pin<&mut Self>,
                 cx: &mut std::task::Context<'_>,
             ) -> std::task::Poll<crate::Result<()>> {
-                self.$socket.multipart_flush(cx)
+                futures::ready!(self.$socket.multipart_flush(cx))?;
+                self.$socket.multipart_poll_ready(cx)
             }
 
             fn start_send(mut self: std::pin::Pin<&mut Self>, item: T) -> crate::Result<()> {
