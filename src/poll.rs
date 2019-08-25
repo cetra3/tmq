@@ -66,6 +66,7 @@ impl EventedSocket {
         Poll::Ready(Ok(()))
     }
 
+    /// Store a multipart that should be sent during the next flush.
     pub(crate) fn multipart_set_buffer(&mut self, buffer: Multipart) {
         assert!(self.buffer.is_empty());
         self.buffer = buffer;
