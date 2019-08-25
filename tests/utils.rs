@@ -10,24 +10,26 @@ use rand::Rng;
 use tmq::{Multipart, Result, TmqError};
 
 /// Synchronous send and receive functions running in a separate thread.
-pub fn sync_send_multiparts<T: Into<Multipart> + Send + 'static>(
+pub fn sync_send_multiparts<T: Into<zmq::Message> + Send + 'static>(
     address: String,
     socket_type: SocketType,
-    multipart: Vec<T>,
+    multipart: Vec<Vec<T>>,
 ) -> JoinHandle<()> {
     spawn(move || {
         let socket = Context::new().socket(socket_type).unwrap();
         socket.connect(&address).unwrap();
 
         for mp in multipart.into_iter() {
-            socket.send_multipart(mp.into().into_iter(), 0).unwrap();
+            socket
+                .send_multipart(mp.into_iter().map(|i| i.into()), 0)
+                .unwrap();
         }
     })
 }
-pub fn sync_send_multipart_repeated(
+pub fn sync_send_multipart_repeated<T: Into<zmq::Message> + Clone + 'static + Send>(
     address: String,
     socket_type: SocketType,
-    multipart: Vec<Vec<u8>>,
+    multipart: Vec<T>,
     count: u64,
 ) -> JoinHandle<()> {
     spawn(move || {

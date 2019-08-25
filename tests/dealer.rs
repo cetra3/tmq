@@ -3,7 +3,10 @@
 use futures::{SinkExt, StreamExt};
 use zmq::{Context, SocketType};
 
-use tmq::{dealer, Multipart, Result};
+use std::thread::spawn;
+use std::time::Duration;
+use tmq::{dealer, Multipart, Result, SocketExt};
+use tokio::future::FutureExt;
 use utils::{
     generate_tcp_addres, msg, send_multipart_repeated, send_multiparts, sync_echo,
     sync_receive_multipart_repeated, sync_receive_multiparts,
@@ -112,7 +115,6 @@ async fn proxy_sequence() -> Result<()> {
     let mut sock = dealer(&ctx).connect(&address)?.finish();
 
     let count = 1_000;
-    let echo = sync_echo(address, SocketType::DEALER, count);
 
     let make_msg = |index| -> Multipart {
         let m1 = format!("Msg #{}", index);
@@ -123,6 +125,8 @@ async fn proxy_sequence() -> Result<()> {
     for i in 0..count {
         sock.send(make_msg(i)).await?;
     }
+
+    let echo = sync_echo(address, SocketType::DEALER, count);
 
     for i in 0..count {
         if let Some(multipart) = sock.next().await {

@@ -24,7 +24,7 @@ macro_rules! impl_sink {
                 cx: &mut std::task::Context<'_>,
             ) -> std::task::Poll<crate::Result<()>> {
                 let buf = self.$buffer.take();
-                let (poll, buffer) = self.$socket.multipart_flush(cx, buf, true);
+                let (poll, buffer) = self.$socket.multipart_flush(cx, buf);
                 self.$buffer = buffer;
                 poll
             }
@@ -40,7 +40,7 @@ macro_rules! impl_sink {
                 cx: &mut std::task::Context<'_>,
             ) -> std::task::Poll<crate::Result<()>> {
                 let buf = self.$buffer.take();
-                let (poll, buffer) = self.$socket.multipart_flush(cx, buf, false);
+                let (poll, buffer) = self.$socket.multipart_flush(cx, buf);
                 self.$buffer = buffer;
                 poll
             }

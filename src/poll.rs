@@ -75,8 +75,6 @@ impl EventedSocket {
     ) -> Result<Option<Multipart>> {
         let len = item.len();
 
-        // The events of the socket must be picked up before the send.
-        self.get_socket().get_events()?;
         while let Some(msg) = item.pop_front() {
             let mut flags = zmq::DONTWAIT;
             if !item.is_empty() {
@@ -92,6 +90,8 @@ impl EventedSocket {
                         // nothing was written
                         self.0.clear_write_ready(cx)?;
                     }
+                    // The events of the socket must be picked up after EAGAIN
+                    self.get_socket().get_events()?;
                     return Ok(Some(item));
                 }
                 Err(e) => return Err(e.into()),
@@ -111,9 +111,16 @@ impl EventedSocket {
         &mut self,
         cx: &mut Context,
         buffer: Option<Multipart>,
-        poll: bool,
     ) -> (Poll<Result<()>>, Option<Multipart>) {
         // If we have some data in the buffer, attempt to send them.
+        match self.multipart_poll_write_flag(cx) {
+            Poll::Ready(res) => match res {
+                Ok(_) => {}
+                Err(e) => return (Poll::Ready(Err(e.into())), buffer),
+            },
+            Poll::Pending => return (Poll::Pending, buffer),
+        };
+
         if let Some(data) = buffer {
             match self.multipart_send(cx, data) {
                 Ok(remaining) => {
@@ -127,12 +134,7 @@ impl EventedSocket {
             }
         }
 
-        // register write event notification
-        if poll {
-            (self.multipart_poll_write_flag(cx), None)
-        } else {
-            (Poll::Ready(Ok(())), None)
-        }
+        (Poll::Ready(Ok(())), None)
     }
 
     fn get_socket(&self) -> &zmq::Socket {
