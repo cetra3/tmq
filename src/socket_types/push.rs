@@ -22,15 +22,13 @@ impl PushBuilderBound {
     pub fn finish(self) -> Push {
         Push {
             socket: EventedSocket::from_zmq_socket(self.socket),
-            buffer: None,
         }
     }
 }
 
 pub struct Push {
     socket: EventedSocket,
-    buffer: Option<Multipart>,
 }
 
 impl_socket!(Push, socket);
-impl_sink!(Push, socket, buffer);
+impl_sink!(Push, socket);

@@ -5,7 +5,7 @@ macro_rules! impl_socket {
         impl crate::socket::AsZmqSocket for $type {
             #[inline]
             fn get_socket(&self) -> &zmq::Socket {
-                &self.$socket.0.get_ref().socket
+                &self.$socket.get_socket()
             }
         }
     };
@@ -15,7 +15,7 @@ macro_rules! impl_socket {
 /// $socket: identifier of a field containing an `EventedSocket`
 /// $buffer: identifier of af ield containing `Option<Multipart>`
 macro_rules! impl_sink {
-    ($type: ty, $socket: ident, $buffer:ident) => {
+    ($type: ty, $socket: ident) => {
         impl<T: Into<crate::Multipart>> futures::Sink<T> for $type {
             type Error = crate::TmqError;
 
@@ -23,15 +23,11 @@ macro_rules! impl_sink {
                 mut self: std::pin::Pin<&mut Self>,
                 cx: &mut std::task::Context<'_>,
             ) -> std::task::Poll<crate::Result<()>> {
-                let buf = self.$buffer.take();
-                let (poll, buffer) = self.$socket.multipart_flush(cx, buf);
-                self.$buffer = buffer;
-                poll
+                self.$socket.multipart_flush(cx)
             }
 
             fn start_send(mut self: std::pin::Pin<&mut Self>, item: T) -> crate::Result<()> {
-                assert_eq!(self.buffer, std::option::Option::None);
-                self.$buffer = std::option::Option::Some(item.into());
+                self.$socket.multipart_set_buffer(item.into());
                 crate::Result::Ok(())
             }
 
@@ -39,10 +35,7 @@ macro_rules! impl_sink {
                 mut self: std::pin::Pin<&mut Self>,
                 cx: &mut std::task::Context<'_>,
             ) -> std::task::Poll<crate::Result<()>> {
-                let buf = self.$buffer.take();
-                let (poll, buffer) = self.$socket.multipart_flush(cx, buf);
-                self.$buffer = buffer;
-                poll
+                self.$socket.multipart_flush(cx)
             }
 
             fn poll_close(

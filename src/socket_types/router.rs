@@ -23,16 +23,14 @@ impl RouterBuilderBound {
     pub fn finish(self) -> Router {
         Router {
             socket: EventedSocket::from_zmq_socket(self.socket),
-            buffer: None,
         }
     }
 }
 
 pub struct Router {
     socket: EventedSocket,
-    buffer: Option<Multipart>,
 }
 
 impl_socket!(Router, socket);
 impl_stream!(Router, socket);
-impl_sink!(Router, socket, buffer);
+impl_sink!(Router, socket);

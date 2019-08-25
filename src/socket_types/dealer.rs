@@ -23,16 +23,14 @@ impl DealerBuilderBound {
     pub fn finish(self) -> Dealer {
         Dealer {
             socket: EventedSocket::from_zmq_socket(self.socket),
-            buffer: None,
         }
     }
 }
 
 pub struct Dealer {
     socket: EventedSocket,
-    buffer: Option<Multipart>,
 }
 
 impl_socket!(Dealer, socket);
 impl_stream!(Dealer, socket);
-impl_sink!(Dealer, socket, buffer);
+impl_sink!(Dealer, socket);
