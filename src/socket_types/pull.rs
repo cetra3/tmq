@@ -1,6 +1,7 @@
 use zmq::{self, Context as ZmqContext};
 
 use crate::poll::ZmqPoller;
+use crate::wrapper::ReceiveWrapper;
 
 pub fn pull(context: &ZmqContext) -> PullBuilder {
     PullBuilder { context }
@@ -21,14 +22,13 @@ pub struct PullBuilderBound {
 impl PullBuilderBound {
     pub fn finish(self) -> Pull {
         Pull {
-            socket: ZmqPoller::from_zmq_socket(self.socket),
+            inner: ReceiveWrapper::new(ZmqPoller::from_zmq_socket(self.socket)),
         }
     }
 }
 
 pub struct Pull {
-    socket: ZmqPoller,
+    inner: ReceiveWrapper,
 }
-
-impl_socket!(Pull, socket);
-impl_stream!(Pull, socket);
+impl_wrapper_deref!(Pull, ReceiveWrapper, inner);
+impl_buffered!(Pull, inner);

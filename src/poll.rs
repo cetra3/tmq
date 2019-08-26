@@ -7,8 +7,8 @@ use zmq;
 
 use crate::socket::SocketWrapper;
 use crate::{Multipart, Result};
-use std::ops::Deref;
 use std::collections::VecDeque;
+use std::ops::Deref;
 
 /// Wrapper on top of a ZeroMQ socket, implements functions for asynchronous reading and writing
 /// of multipart messages.
@@ -31,7 +31,11 @@ impl ZmqPoller {
     /// If not, a batch of messages up to the capacity of the buffer will be read from the socket.
     ///
     /// If nothing was received, the read flag is cleared.
-    pub(crate) fn multipart_recv_buffered(&self, cx: &mut Context<'_>, read_buffer: &mut ReceiveBuffer) -> Poll<Option<Result<Multipart>>> {
+    pub(crate) fn multipart_recv_buffered(
+        &self,
+        cx: &mut Context<'_>,
+        read_buffer: &mut ReceiveBuffer,
+    ) -> Poll<Option<Result<Multipart>>> {
         if read_buffer.is_empty() {
             ready!(self.multipart_poll_read_ready(cx))?;
 
@@ -59,16 +63,14 @@ impl ZmqPoller {
 
                         if read_buffer.is_empty() {
                             break Poll::Pending;
-                        }
-                        else {
-                            break Poll::Ready(Some(Ok(read_buffer.pop_front().unwrap())))
+                        } else {
+                            break Poll::Ready(Some(Ok(read_buffer.pop_front().unwrap())));
                         }
                     }
                     Err(e) => break Poll::Ready(Some(Err(e.into()))),
                 }
             }
-        }
-        else {
+        } else {
             Poll::Ready(Some(Ok(read_buffer.pop_front().unwrap())))
         }
     }
@@ -190,17 +192,14 @@ impl Deref for ZmqPoller {
 
 pub(crate) struct ReceiveBuffer {
     capacity: usize,
-    buffer: VecDeque<Multipart>
+    buffer: VecDeque<Multipart>,
 }
 
 impl ReceiveBuffer {
     pub(crate) fn new(capacity: usize) -> Self {
         assert!(capacity > 0);
         let buffer = VecDeque::with_capacity(capacity);
-        Self {
-            capacity,
-            buffer
-        }
+        Self { capacity, buffer }
     }
 
     pub(crate) fn is_empty(&self) -> bool {

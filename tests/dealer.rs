@@ -1,13 +1,11 @@
 #![feature(async_await)]
 
 use futures::{FutureExt, TryFutureExt};
-use futures::{SinkExt, Stream, StreamExt, TryStreamExt};
-use zmq::{Context, Socket, SocketType};
+use futures::{SinkExt, StreamExt};
+use zmq::{Context, SocketType};
 
 use std::thread::spawn;
-use std::time::Duration;
-use tmq::{dealer, Multipart, Result, SocketExt, SplitSocketExt, TmqError};
-use tokio::future::FutureExt as TokioFutureExt;
+use tmq::{dealer, Multipart, Result};
 use utils::{
     generate_tcp_addres, msg, send_multipart_repeated, send_multiparts, sync_echo,
     sync_receive_multipart_repeated, sync_receive_multiparts,
@@ -152,10 +150,7 @@ async fn proxy_interleaved() -> Result<()> {
 fn split_echo() -> Result<()> {
     let address = generate_tcp_addres();
     let ctx = Context::new();
-    let mut sock = dealer(&ctx).bind(&address)?.finish();
-
-    let (rx, tx) = sock.split_socket();
-
+    let (rx, tx) = dealer(&ctx).bind(&address)?.finish().split();
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
 
     let count = 10;
@@ -192,9 +187,7 @@ fn split_echo() -> Result<()> {
 fn split_send_all() -> Result<()> {
     let address = generate_tcp_addres();
     let ctx = Context::new();
-    let mut sock = dealer(&ctx).connect(&address)?.finish();
-
-    let (rx, mut tx) = sock.split_socket();
+    let (rx, mut tx) = dealer(&ctx).connect(&address)?.finish().split();
     drop(rx);
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();

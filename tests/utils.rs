@@ -2,11 +2,12 @@
 
 use std::thread::{spawn, JoinHandle};
 
-use futures::{Sink, Stream};
+use futures::{Sink, SinkExt, Stream};
 use zmq::{Context, SocketType};
 
 use futures::StreamExt;
 use rand::Rng;
+use std::ops::DerefMut;
 use tmq::{Multipart, Result, TmqError};
 
 /// Synchronous send and receive functions running in a separate thread.
@@ -105,10 +106,11 @@ pub fn sync_echo(address: String, socket_type: SocketType, count: u64) -> JoinHa
 
 /// Functions for sending and receiving using the asynchronous sockets.
 pub async fn check_receive_multiparts<
+    D: DerefMut<Target = S>,
     S: Stream<Item = Result<Multipart>> + Unpin,
     T: Into<zmq::Message>,
 >(
-    mut stream: S,
+    mut stream: D,
     expected: Vec<Vec<T>>,
 ) -> Result<()> {
     for item in expected.into_iter() {
@@ -124,10 +126,11 @@ pub async fn check_receive_multiparts<
     Ok(())
 }
 pub async fn receive_multipart_repeated<
+    D: DerefMut<Target = S>,
     S: Stream<Item = Result<Multipart>> + Unpin,
     T: Into<zmq::Message>,
 >(
-    mut stream: S,
+    mut stream: D,
     expected: Vec<T>,
     count: u64,
 ) -> Result<()> {
@@ -141,36 +144,41 @@ pub async fn receive_multipart_repeated<
     }
     Ok(())
 }
-pub async fn send_multiparts<S: Sink<Multipart, Error = TmqError>, T: Into<zmq::Message>>(
-    sink: S,
+pub async fn send_multiparts<
+    D: DerefMut<Target = S>,
+    S: Sink<Multipart, Error = TmqError> + Unpin,
+    T: Into<zmq::Message>,
+>(
+    mut sink: D,
     messages: Vec<Vec<T>>,
 ) -> Result<()> {
-    futures::stream::iter(
-        messages
-            .into_iter()
-            .map(|i| Ok(i.into_iter().map(|i| i.into()).collect::<Multipart>())),
-    )
-    .forward(sink)
-    .await?;
+    for message in messages.into_iter() {
+        sink.send(message.into_iter().map(|i| i.into()).collect::<Multipart>())
+            .await?;
+    }
+
     Ok(())
 }
 pub async fn send_multipart_repeated<
-    S: Sink<Multipart, Error = TmqError>,
+    D: DerefMut<Target = S>,
+    S: Sink<Multipart, Error = TmqError> + Unpin,
     T: Into<zmq::Message> + Clone,
 >(
-    sink: S,
+    mut sink: D,
     message: Vec<T>,
     count: u64,
 ) -> Result<()> {
-    let iterator = std::iter::repeat_with(|| {
-        Ok(message
-            .clone()
-            .into_iter()
-            .map(|i| i.into())
-            .collect::<Multipart>())
-    })
-    .take(count as usize);
-    futures::stream::iter(iterator).forward(sink).await?;
+    for _ in 0..count {
+        sink.send(
+            message
+                .clone()
+                .into_iter()
+                .map(|i| i.into())
+                .collect::<Multipart>(),
+        )
+        .await?;
+    }
+
     Ok(())
 }
 

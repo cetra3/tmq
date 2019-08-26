@@ -1,7 +1,8 @@
 use zmq::{self, Context as ZmqContext};
 
 use crate::poll::ZmqPoller;
-use crate::{socket::AsZmqSocket, Multipart, Result};
+use crate::wrapper::SendReceiveWrapper;
+use crate::{socket::AsZmqSocket, Result};
 
 pub fn router(context: &ZmqContext) -> RouterBuilder {
     RouterBuilder { context }
@@ -23,35 +24,31 @@ pub struct RouterBuilderBound {
 impl RouterBuilderBound {
     pub fn finish(self) -> Router {
         Router {
-            socket: ZmqPoller::from_zmq_socket(self.socket),
-            buffer: Default::default()
+            inner: SendReceiveWrapper::new(ZmqPoller::from_zmq_socket(self.socket)),
         }
     }
 }
 
 pub struct Router {
-    socket: ZmqPoller,
-    buffer: Multipart,
+    inner: SendReceiveWrapper,
 }
+impl_wrapper_deref!(Router, SendReceiveWrapper, inner);
+impl_split!(Router, inner);
 
 impl Router {
     pub fn is_router_mandatory(&self) -> Result<bool> {
-        Ok(self.get_socket().is_router_mandatory()?)
+        Ok(self.inner.get_socket().is_router_mandatory()?)
     }
     pub fn set_router_mandatory(&self, value: bool) -> Result<()> {
-        self.get_socket().set_router_mandatory(value)?;
+        self.inner.get_socket().set_router_mandatory(value)?;
         Ok(())
     }
 
     pub fn is_router_handover(&self) -> Result<bool> {
-        Ok(self.get_socket().is_router_handover()?)
+        Ok(self.inner.get_socket().is_router_handover()?)
     }
     pub fn set_router_handover(&self, value: bool) -> Result<()> {
-        self.get_socket().set_router_handover(value)?;
+        self.inner.get_socket().set_router_handover(value)?;
         Ok(())
     }
 }
-
-impl_socket!(Router, socket);
-impl_stream!(Router, socket);
-impl_sink!(Router, buffer, socket);
