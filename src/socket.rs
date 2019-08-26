@@ -202,3 +202,9 @@ pub trait SplitSocketExt {
 
     fn split_socket(self) -> (Self::ReadHalf, Self::WriteHalf);
 }
+
+pub trait BufferedSocketExt {
+    type BufferedStream: Stream<Item = Result<Multipart>>;
+
+    fn buffered_stream(self, capacity: usize) -> Self::BufferedStream;
+}

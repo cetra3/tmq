@@ -24,7 +24,7 @@ impl DealerBuilderBound {
     pub fn finish(self) -> Dealer {
         Dealer {
             socket: ZmqPoller::from_zmq_socket(self.socket),
-            buffer: Multipart::default(),
+            buffer: Default::default()
         }
     }
 }

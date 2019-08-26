@@ -75,6 +75,49 @@ macro_rules! impl_stream {
     };
 }
 
+macro_rules! impl_as_buffered {
+    ($type: ty, $buffered: ident, $socket: ident) => {
+        impl crate::socket::BufferedSocketExt for $type {
+            type BufferedStream = $buffered;
+
+            fn buffered_stream(self, capacity: usize) -> Self::BufferedStream {
+                $buffered::new(self.$socket, capacity)
+            }
+        }
+
+        pub struct $buffered {
+            $socket: std::rc::Rc<crate::poll::ZmqPoller>,
+            buffer: crate::poll::ReceiveBuffer
+        }
+        impl $buffered {
+            pub(crate) fn new(poller: crate::poll::ZmqPoller, capacity: usize) -> Self {
+                Self {
+                    $socket: std::rc::Rc::new(poller),
+                    buffer: crate::poll::ReceiveBuffer::new(capacity)
+                }
+            }
+        }
+
+        impl_buffered_stream!($buffered, buffer, $socket);
+    };
+}
+
+macro_rules! impl_buffered_stream {
+    ($type: ty, $buffer: ident, $socket: ident) => {
+        impl futures::Stream for $type {
+            type Item = crate::Result<crate::Multipart>;
+
+            fn poll_next(
+                self: std::pin::Pin<&mut Self>,
+                cx: &mut std::task::Context,
+            ) -> std::task::Poll<std::option::Option<Self::Item>> {
+                let Self { ref $socket, ref mut $buffer } = self.get_mut();
+                $socket.multipart_recv_buffered(cx, $buffer)
+            }
+        }
+    };
+}
+
 macro_rules! impl_split {
     ($type: ty, $read: tt, $write: tt, $socket: ident, $buffer: ident) => {
         impl crate::SplitSocketExt for $type {

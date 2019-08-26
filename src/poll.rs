@@ -8,6 +8,7 @@ use zmq;
 use crate::socket::SocketWrapper;
 use crate::{Multipart, Result};
 use std::ops::Deref;
+use std::collections::VecDeque;
 
 /// Wrapper on top of a ZeroMQ socket, implements functions for asynchronous reading and writing
 /// of multipart messages.
@@ -24,6 +25,54 @@ impl ZmqPoller {
 }
 
 impl ZmqPoller {
+    /// Attempt to receive a Multipart message from a ZeroMQ socket with buffering.
+    ///
+    /// If there is any message in the buffer, it will be returned right away.
+    /// If not, a batch of messages up to the capacity of the buffer will be read from the socket.
+    ///
+    /// If nothing was received, the read flag is cleared.
+    pub(crate) fn multipart_recv_buffered(&self, cx: &mut Context<'_>, read_buffer: &mut ReceiveBuffer) -> Poll<Option<Result<Multipart>>> {
+        if read_buffer.is_empty() {
+            ready!(self.multipart_poll_read_ready(cx))?;
+
+            let mut buffer = Multipart::new();
+            loop {
+                let mut msg = zmq::Message::new();
+                match self.get_socket().recv(&mut msg, zmq::DONTWAIT) {
+                    Ok(_) => {
+                        let more = msg.get_more();
+                        buffer.push_back(msg);
+                        if !more {
+                            read_buffer.push_back(buffer);
+                            if read_buffer.is_full() {
+                                break Poll::Ready(Some(Ok(read_buffer.pop_front().unwrap())));
+                            }
+
+                            buffer = Multipart::new();
+                        }
+                    }
+                    Err(zmq::Error::EAGAIN) => {
+                        if !buffer.is_empty() {
+                            read_buffer.push_back(buffer);
+                        }
+                        self.clear_read_ready(cx, Ready::readable())?;
+
+                        if read_buffer.is_empty() {
+                            break Poll::Pending;
+                        }
+                        else {
+                            break Poll::Ready(Some(Ok(read_buffer.pop_front().unwrap())))
+                        }
+                    }
+                    Err(e) => break Poll::Ready(Some(Err(e.into()))),
+                }
+            }
+        }
+        else {
+            Poll::Ready(Some(Ok(read_buffer.pop_front().unwrap())))
+        }
+    }
+
     /// Attempt to receive a Multipart message from a ZeroMQ socket.
     ///
     /// Either the whole multipart at once or nothing is received (according to
@@ -136,5 +185,36 @@ impl Deref for ZmqPoller {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+pub(crate) struct ReceiveBuffer {
+    capacity: usize,
+    buffer: VecDeque<Multipart>
+}
+
+impl ReceiveBuffer {
+    pub(crate) fn new(capacity: usize) -> Self {
+        assert!(capacity > 0);
+        let buffer = VecDeque::with_capacity(capacity);
+        Self {
+            capacity,
+            buffer
+        }
+    }
+
+    pub(crate) fn is_empty(&self) -> bool {
+        self.buffer.is_empty()
+    }
+
+    pub(crate) fn is_full(&self) -> bool {
+        self.buffer.len() == self.capacity
+    }
+
+    pub(crate) fn pop_front(&mut self) -> Option<Multipart> {
+        self.buffer.pop_front()
+    }
+    pub(crate) fn push_back(&mut self, item: Multipart) {
+        self.buffer.push_back(item)
     }
 }

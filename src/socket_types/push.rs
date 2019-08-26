@@ -23,7 +23,7 @@ impl PushBuilderBound {
     pub fn finish(self) -> Push {
         Push {
             socket: ZmqPoller::from_zmq_socket(self.socket),
-            buffer: Multipart::default(),
+            buffer: Default::default()
         }
     }
 }

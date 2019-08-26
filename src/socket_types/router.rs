@@ -24,7 +24,7 @@ impl RouterBuilderBound {
     pub fn finish(self) -> Router {
         Router {
             socket: ZmqPoller::from_zmq_socket(self.socket),
-            buffer: Multipart::default(),
+            buffer: Default::default()
         }
     }
 }
