@@ -61,12 +61,6 @@ pub trait SocketExt {
     fn is_probe_router(&self) -> Result<bool>;
     fn set_probe_router(&self, value: bool) -> Result<()>;
 
-    fn is_router_mandatory(&self) -> Result<bool>;
-    fn set_router_mandatory(&self, value: bool) -> Result<()>;
-
-    fn is_router_handover(&self) -> Result<bool>;
-    fn set_router_handover(&self, value: bool) -> Result<()>;
-
     fn is_curve_server(&self) -> Result<bool>;
     fn set_curve_server(&self, value: bool) -> Result<()>;
 
@@ -152,12 +146,6 @@ impl<T: AsZmqSocket> SocketExt for T {
 
     getter!(is_probe_router, bool);
     setter!(set_probe_router, bool);
-
-    getter!(is_router_mandatory, bool); // TODO: only define on Router
-    setter!(set_router_mandatory, bool);
-
-    getter!(is_router_handover, bool); // TODO: only define on Router
-    setter!(set_router_handover, bool);
 
     getter!(is_curve_server, bool);
     setter!(set_curve_server, bool);

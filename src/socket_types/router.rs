@@ -1,7 +1,7 @@
 use zmq::{self, Context as ZmqContext};
 
 use crate::poll::ZmqPoller;
-use crate::Multipart;
+use crate::{socket::AsZmqSocket, Multipart, Result};
 
 pub fn router(context: &ZmqContext) -> RouterBuilder {
     RouterBuilder { context }
@@ -24,14 +24,32 @@ impl RouterBuilderBound {
     pub fn finish(self) -> Router {
         Router {
             socket: ZmqPoller::from_zmq_socket(self.socket),
-            buffer: Multipart::default()
+            buffer: Multipart::default(),
         }
     }
 }
 
 pub struct Router {
     socket: ZmqPoller,
-    buffer: Multipart
+    buffer: Multipart,
+}
+
+impl Router {
+    pub fn is_router_mandatory(&self) -> Result<bool> {
+        Ok(self.get_socket().is_router_mandatory()?)
+    }
+    pub fn set_router_mandatory(&self, value: bool) -> Result<()> {
+        self.get_socket().set_router_mandatory(value)?;
+        Ok(())
+    }
+
+    pub fn is_router_handover(&self) -> Result<bool> {
+        Ok(self.get_socket().is_router_handover()?)
+    }
+    pub fn set_router_handover(&self, value: bool) -> Result<()> {
+        self.get_socket().set_router_handover(value)?;
+        Ok(())
+    }
 }
 
 impl_socket!(Router, socket);
