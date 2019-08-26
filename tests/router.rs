@@ -21,16 +21,16 @@ async fn receive_single_message() -> Result<()> {
     let ctx = Context::new();
     let mut sock = router(&ctx).bind(&address)?.finish();
 
-    let thread = sync_send_multiparts(
-        address,
-        SocketType::DEALER,
-        vec![vec![msg(b"hello"), msg(b"world")]],
-    );
+    let data = vec!["hello", "world"];
+    let thread = sync_send_multiparts(address, SocketType::DEALER, vec![data.clone()]);
 
     let mut message = sock.next().await.unwrap()?;
     assert_eq!(message.len(), 3);
     message.pop_front().unwrap();
-    assert_eq!(message, vec![msg(b"hello"), msg(b"world")]);
+    assert_eq!(
+        message,
+        data.into_iter().map(|i| i.into()).collect::<Multipart>()
+    );
 
     thread.join().unwrap();
 
@@ -53,9 +53,7 @@ async fn receive_multiple_messages() -> Result<()> {
         message.pop_front().unwrap();
         assert_eq!(
             message,
-            item.into_iter()
-                .map(|i| zmq::Message::from(i))
-                .collect::<Multipart>()
+            item.into_iter().map(|i| i.into()).collect::<Multipart>()
         );
     }
 
@@ -71,14 +69,17 @@ async fn receive_hammer() -> Result<()> {
     let mut sock = router(&ctx).bind(&address)?.finish();
 
     let count: u64 = 1_000_000;
-    let thread =
-        sync_send_multipart_repeated(address, SocketType::DEALER, vec!["hello", "world"], count);
+    let data = vec!["hello", "world"];
+    let thread = sync_send_multipart_repeated(address, SocketType::DEALER, data.clone(), count);
 
     for _ in 0..count {
         let mut message = sock.next().await.unwrap()?;
         assert_eq!(message.len(), 3);
         message.pop_front().unwrap();
-        assert_eq!(message, vec![msg(b"hello"), msg(b"world")]);
+        assert_eq!(
+            message,
+            data.iter().map(|i| i.into()).collect::<Multipart>()
+        );
     }
 
     thread.join().unwrap();

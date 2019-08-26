@@ -23,7 +23,10 @@ macro_rules! impl_sink {
                 self: std::pin::Pin<&mut Self>,
                 cx: &mut std::task::Context<'_>,
             ) -> std::task::Poll<crate::Result<()>> {
-                let Self { ref $socket, ref mut $buffer } = self.get_mut();
+                let Self {
+                    ref $socket,
+                    ref mut $buffer,
+                } = self.get_mut();
                 futures::ready!($socket.multipart_flush(cx, $buffer))?;
                 std::task::Poll::Ready(crate::Result::Ok(()))
             }
@@ -38,7 +41,10 @@ macro_rules! impl_sink {
                 self: std::pin::Pin<&mut Self>,
                 cx: &mut std::task::Context<'_>,
             ) -> std::task::Poll<crate::Result<()>> {
-                let Self { ref $socket, ref mut $buffer } = self.get_mut();
+                let Self {
+                    ref $socket,
+                    ref mut $buffer,
+                } = self.get_mut();
                 $socket.multipart_flush(cx, $buffer)
             }
 
@@ -77,23 +83,26 @@ macro_rules! impl_split {
 
             fn split_socket(self) -> (Self::ReadHalf, Self::WriteHalf) {
                 let rc = std::rc::Rc::new(self.$socket);
-                (Self::ReadHalf {
-                    $socket: rc.clone()
-                }, Self::WriteHalf {
-                    $socket: rc,
-                    $buffer: self.$buffer
-                })
+                (
+                    Self::ReadHalf {
+                        $socket: rc.clone(),
+                    },
+                    Self::WriteHalf {
+                        $socket: rc,
+                        $buffer: self.$buffer,
+                    },
+                )
             }
         }
 
         pub struct $read {
-            $socket: std::rc::Rc<crate::poll::ZmqPoller>
+            $socket: std::rc::Rc<crate::poll::ZmqPoller>,
         }
         impl_stream!($read, socket);
 
         pub struct $write {
             $socket: std::rc::Rc<crate::poll::ZmqPoller>,
-            $buffer: crate::Multipart
+            $buffer: crate::Multipart,
         }
         impl_sink!($write, $buffer, $socket);
     };

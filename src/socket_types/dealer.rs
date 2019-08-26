@@ -24,14 +24,14 @@ impl DealerBuilderBound {
     pub fn finish(self) -> Dealer {
         Dealer {
             socket: ZmqPoller::from_zmq_socket(self.socket),
-            buffer: Multipart::default()
+            buffer: Multipart::default(),
         }
     }
 }
 
 pub struct Dealer {
     socket: ZmqPoller,
-    buffer: Multipart
+    buffer: Multipart,
 }
 
 impl_socket!(Dealer, socket);

@@ -7,7 +7,7 @@ use std::sync::{Arc, Barrier};
 use std::thread::spawn;
 use tmq::{pull, Result, SocketExt};
 use utils::{
-    check_receive_multiparts, generate_tcp_addres, msg, receive_multipart_repeated,
+    check_receive_multiparts, generate_tcp_addres, receive_multipart_repeated,
     sync_send_multipart_repeated, sync_send_multiparts,
 };
 
@@ -19,13 +19,9 @@ async fn receive_single_message() -> Result<()> {
     let ctx = Context::new();
     let sock = pull(&ctx).bind(&address)?.finish();
 
-    let thread = sync_send_multiparts(
-        address,
-        SocketType::PUSH,
-        vec![vec![msg(b"hello"), msg(b"world")]],
-    );
+    let thread = sync_send_multiparts(address, SocketType::PUSH, vec![vec!["hello", "world"]]);
 
-    check_receive_multiparts(sock, vec![vec![msg(b"hello"), msg(b"world")]]).await?;
+    check_receive_multiparts(sock, vec![vec!["hello", "world"]]).await?;
 
     thread.join().unwrap();
 
@@ -41,18 +37,12 @@ async fn receive_multiple_messages() -> Result<()> {
     let thread = sync_send_multiparts(
         address,
         SocketType::PUSH,
-        vec![
-            vec![msg(b"hello"), msg(b"world")],
-            vec![msg(b"second"), msg(b"message")],
-        ],
+        vec![vec!["hello", "world"], vec!["second", "message"]],
     );
 
     check_receive_multiparts(
         sock,
-        vec![
-            vec![msg(b"hello"), msg(b"world")],
-            vec![msg(b"second"), msg(b"message")],
-        ],
+        vec![vec!["hello", "world"], vec!["second", "message"]],
     )
     .await?;
 
@@ -68,14 +58,10 @@ async fn receive_hammer() -> Result<()> {
     let sock = pull(&ctx).bind(&address)?.finish();
 
     let count: u64 = 1_000_000;
-    let thread = sync_send_multipart_repeated(
-        address,
-        SocketType::PUSH,
-        vec![vec![1, 2, 3], vec![4, 5, 6]],
-        count,
-    );
+    let thread =
+        sync_send_multipart_repeated(address, SocketType::PUSH, vec!["hello", "world"], count);
 
-    receive_multipart_repeated(sock, vec![msg(&[1, 2, 3]), msg(&[4, 5, 6])], count).await?;
+    receive_multipart_repeated(sock, vec!["hello", "world"], count).await?;
 
     thread.join().unwrap();
 

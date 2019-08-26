@@ -45,15 +45,11 @@ pub fn sync_send_multipart_repeated<T: Into<zmq::Message> + Clone + 'static + Se
         }
     })
 }
-pub fn sync_receive_multiparts<T: Into<Multipart>>(
+pub fn sync_receive_multiparts<T: Into<zmq::Message> + Send + 'static>(
     address: String,
     socket_type: SocketType,
-    expected: Vec<T>,
+    expected: Vec<Vec<T>>,
 ) -> JoinHandle<()> {
-    let expected = expected
-        .into_iter()
-        .map(|i| i.into())
-        .collect::<Vec<Multipart>>();
     spawn(move || {
         let socket = Context::new().socket(socket_type).unwrap();
         socket.bind(&address).unwrap();
@@ -65,23 +61,33 @@ pub fn sync_receive_multiparts<T: Into<Multipart>>(
                 .into_iter()
                 .map(|i| i.into())
                 .collect();
-            assert_eq!(item, received);
+            assert_eq!(
+                item.into_iter().map(|i| i.into()).collect::<Multipart>(),
+                received
+            );
         }
     })
 }
-pub fn sync_receive_multipart_repeated(
+pub fn sync_receive_multipart_repeated<T: Into<zmq::Message> + Send + 'static>(
     address: String,
     socket_type: SocketType,
-    multipart: Vec<Vec<u8>>,
+    multipart: Vec<T>,
     count: u64,
 ) -> JoinHandle<()> {
     spawn(move || {
         let socket = Context::new().socket(socket_type).unwrap();
         socket.bind(&address).unwrap();
 
+        let multipart: Multipart = multipart.into_iter().map(|i| i.into()).collect();
         for _ in 0..count {
             let received = socket.recv_multipart(0).unwrap();
-            assert_eq!(multipart, received);
+            assert_eq!(
+                multipart,
+                received
+                    .into_iter()
+                    .map(|i| i.into())
+                    .collect::<Multipart>()
+            );
         }
     })
 }
@@ -100,38 +106,32 @@ pub fn sync_echo(address: String, socket_type: SocketType, count: u64) -> JoinHa
 /// Functions for sending and receiving using the asynchronous sockets.
 pub async fn check_receive_multiparts<
     S: Stream<Item = Result<Multipart>> + Unpin,
-    T: Into<Multipart>,
+    T: Into<zmq::Message>,
 >(
     mut stream: S,
-    expected: Vec<T>,
+    expected: Vec<Vec<T>>,
 ) -> Result<()> {
-    let mut data = Vec::new();
-
-    for _ in 0..expected.len() {
+    for item in expected.into_iter() {
         if let Some(msg) = stream.next().await {
-            data.push(msg?)
+            assert_eq!(
+                msg?,
+                item.into_iter().map(|i| i.into()).collect::<Multipart>()
+            );
         } else {
             panic!("Stream ended too soon");
         }
     }
-    assert_eq!(
-        data,
-        expected
-            .into_iter()
-            .map(|i| i.into())
-            .collect::<Vec<Multipart>>()
-    );
     Ok(())
 }
 pub async fn receive_multipart_repeated<
     S: Stream<Item = Result<Multipart>> + Unpin,
-    T: Into<Multipart>,
+    T: Into<zmq::Message>,
 >(
     mut stream: S,
-    expected: T,
+    expected: Vec<T>,
     count: u64,
 ) -> Result<()> {
-    let expected = expected.into();
+    let expected: Multipart = expected.into_iter().map(|i| i.into()).collect();
     for _ in 0..count {
         if let Some(msg) = stream.next().await {
             assert_eq!(msg?, expected);
@@ -141,18 +141,25 @@ pub async fn receive_multipart_repeated<
     }
     Ok(())
 }
-pub async fn send_multiparts<S: Sink<Multipart, Error = TmqError>, T: Into<Multipart>>(
+pub async fn send_multiparts<S: Sink<Multipart, Error = TmqError>, T: Into<zmq::Message>>(
     sink: S,
-    messages: Vec<T>,
+    messages: Vec<Vec<T>>,
 ) -> Result<()> {
-    futures::stream::iter(messages.into_iter().map(|i| Ok(i.into())))
-        .forward(sink)
-        .await?;
+    futures::stream::iter(
+        messages
+            .into_iter()
+            .map(|i| Ok(i.into_iter().map(|i| i.into()).collect::<Multipart>())),
+    )
+    .forward(sink)
+    .await?;
     Ok(())
 }
-pub async fn send_multipart_repeated<S: Sink<Multipart, Error = TmqError>>(
+pub async fn send_multipart_repeated<
+    S: Sink<Multipart, Error = TmqError>,
+    T: Into<zmq::Message> + Clone,
+>(
     sink: S,
-    message: Vec<Vec<u8>>,
+    message: Vec<T>,
     count: u64,
 ) -> Result<()> {
     let iterator = std::iter::repeat_with(|| {

@@ -23,14 +23,14 @@ impl PushBuilderBound {
     pub fn finish(self) -> Push {
         Push {
             socket: ZmqPoller::from_zmq_socket(self.socket),
-            buffer: Multipart::default()
+            buffer: Multipart::default(),
         }
     }
 }
 
 pub struct Push {
     socket: ZmqPoller,
-    buffer: Multipart
+    buffer: Multipart,
 }
 
 impl_socket!(Push, socket);

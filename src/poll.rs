@@ -94,7 +94,11 @@ impl ZmqPoller {
     /// Attempt to flush the message buffer.
     /// If the buffer cannot be fully flushed, `Poll::Pending` will be returned and a wakeup
     /// will be scheduled the next time there is an event on the ZMQ socket.
-    pub(crate) fn multipart_flush(&self, cx: &mut Context<'_>, buffer: &mut Multipart) -> Poll<Result<()>> {
+    pub(crate) fn multipart_flush(
+        &self,
+        cx: &mut Context<'_>,
+        buffer: &mut Multipart,
+    ) -> Poll<Result<()>> {
         while !buffer.is_empty() {
             ready!(self.multipart_poll_write_ready(cx))?;
             ready!(self.multipart_send(buffer))?;
@@ -120,8 +124,7 @@ impl ZmqPoller {
         let events = self.get_socket().get_events()?;
         if events.contains(event) {
             Poll::Ready(Ok(()))
-        }
-        else {
+        } else {
             self.clear_read_ready(cx, Ready::readable())?;
             Poll::Pending
         }

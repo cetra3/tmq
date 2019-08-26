@@ -1,13 +1,13 @@
 #![feature(async_await)]
 
-use futures::{SinkExt, StreamExt, TryStreamExt};
-use futures::{TryFutureExt, FutureExt};
-use zmq::{Context, SocketType, Socket};
+use futures::{FutureExt, TryFutureExt};
+use futures::{SinkExt, Stream, StreamExt, TryStreamExt};
+use zmq::{Context, Socket, SocketType};
 
 use std::thread::spawn;
 use std::time::Duration;
-use tmq::{dealer, Multipart, Result, SocketExt, TmqError, SplitSocketExt};
-use tokio::future::{FutureExt as TokioFutureExt};
+use tmq::{dealer, Multipart, Result, SocketExt, SplitSocketExt, TmqError};
+use tokio::future::FutureExt as TokioFutureExt;
 use utils::{
     generate_tcp_addres, msg, send_multipart_repeated, send_multiparts, sync_echo,
     sync_receive_multipart_repeated, sync_receive_multiparts,
@@ -21,13 +21,10 @@ async fn send_single_message() -> Result<()> {
     let ctx = Context::new();
     let sock = dealer(&ctx).connect(&address)?.finish();
 
-    let thread = sync_receive_multiparts(
-        address,
-        SocketType::DEALER,
-        vec![vec![msg(b"hello"), msg(b"world")]],
-    );
+    let data = vec![vec!["hello", "world"]];
+    let thread = sync_receive_multiparts(address, SocketType::DEALER, data.clone());
 
-    send_multiparts(sock, vec![vec![msg(b"hello"), msg(b"world")]]).await?;
+    send_multiparts(sock, data).await?;
 
     thread.join().unwrap();
 
@@ -40,25 +37,14 @@ async fn send_multiple_messages() -> Result<()> {
     let ctx = Context::new();
     let sock = dealer(&ctx).connect(&address)?.finish();
 
-    let thread = sync_receive_multiparts(
-        address,
-        SocketType::DEALER,
-        vec![
-            vec![msg(b"hello"), msg(b"world")],
-            vec![msg(b"second"), msg(b"message")],
-            vec![msg(b"third"), msg(b"message")],
-        ],
-    );
+    let data = vec![
+        vec!["hello", "world"],
+        vec!["second", "message"],
+        vec!["third", "message"],
+    ];
+    let thread = sync_receive_multiparts(address, SocketType::DEALER, data.clone());
 
-    send_multiparts(
-        sock,
-        vec![
-            vec![msg(b"hello"), msg(b"world")],
-            vec![msg(b"second"), msg(b"message")],
-            vec![msg(b"third"), msg(b"message")],
-        ],
-    )
-    .await?;
+    send_multiparts(sock, data).await?;
 
     thread.join().unwrap();
 
@@ -71,17 +57,10 @@ async fn send_empty_message() -> Result<()> {
     let ctx = Context::new();
     let sock = dealer(&ctx).connect(&address)?.finish();
 
-    let thread = sync_receive_multiparts(
-        address,
-        SocketType::DEALER,
-        vec![vec![msg(b"hello"), msg(b"world")]],
-    );
+    let data = vec!["hello", "world"];
+    let thread = sync_receive_multiparts(address, SocketType::DEALER, vec![data.clone()]);
 
-    send_multiparts(
-        sock,
-        vec![vec![], vec![], vec![], vec![msg(b"hello"), msg(b"world")]],
-    )
-    .await?;
+    send_multiparts(sock, vec![vec![], vec![], vec![], data]).await?;
 
     thread.join().unwrap();
 
@@ -95,14 +74,10 @@ async fn send_hammer() -> Result<()> {
     let sock = dealer(&ctx).connect(&address)?.finish();
 
     let count = 1_000;
-    let thread = sync_receive_multipart_repeated(
-        address,
-        SocketType::DEALER,
-        vec![b"hello".to_vec(), b"world".to_vec()],
-        count,
-    );
+    let data = vec!["hello", "world"];
+    let thread = sync_receive_multipart_repeated(address, SocketType::DEALER, data.clone(), count);
 
-    send_multipart_repeated(sock, vec![b"hello".to_vec(), b"world".to_vec()], count).await?;
+    send_multipart_repeated(sock, data, count).await?;
 
     thread.join().unwrap();
 
@@ -184,11 +159,12 @@ fn split_echo() -> Result<()> {
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
 
     let count = 10;
-    runtime.spawn(rx
-        .take(count)
-        .forward(tx)
-        .map_err(|e| panic!(e))
-        .map(|_| ()));
+    runtime.spawn(
+        rx.take(count)
+            .forward(tx)
+            .map_err(|e| panic!(e))
+            .map(|_| ()),
+    );
 
     let thread = spawn(move || {
         let ctx = Context::new();
@@ -196,15 +172,59 @@ fn split_echo() -> Result<()> {
         sender.connect(&address).unwrap();
 
         for _ in 0..count {
-            sender.send_multipart(vec!("hello", "world").into_iter(), 0).unwrap();
-            assert_eq!(sender.recv_multipart(0).unwrap(), vec!(
-                b"hello".to_vec(),
-                b"world".to_vec()
-            ));
+            sender
+                .send_multipart(vec!["hello", "world"].into_iter(), 0)
+                .unwrap();
+            assert_eq!(
+                sender.recv_multipart(0).unwrap(),
+                vec!(b"hello".to_vec(), b"world".to_vec())
+            );
         }
     });
 
     runtime.run().unwrap();
+    thread.join().unwrap();
+
+    Ok(())
+}
+
+#[test]
+fn split_send_all() -> Result<()> {
+    let address = generate_tcp_addres();
+    let ctx = Context::new();
+    let mut sock = dealer(&ctx).connect(&address)?.finish();
+
+    let (rx, mut tx) = sock.split_socket();
+    drop(rx);
+
+    let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+
+    let count = 10_000;
+    let thread = spawn(move || {
+        let ctx = Context::new();
+        let receiver = ctx.socket(SocketType::DEALER).unwrap();
+        receiver.bind(&address).unwrap();
+
+        for i in 0..count {
+            let received = receiver.recv_multipart(0).unwrap();
+            assert_eq!(
+                received,
+                vec!(
+                    i.to_string().as_bytes().to_vec(),
+                    (i + 1).to_string().as_bytes().to_vec(),
+                )
+            );
+        }
+    });
+
+    let mut count = futures::stream::iter((0..count).map(|i| {
+        Multipart::from(vec![
+            zmq::Message::from(&i.to_string()),
+            zmq::Message::from(&(i + 1).to_string()),
+        ])
+    }));
+    runtime.block_on(tx.send_all(&mut count))?;
+
     thread.join().unwrap();
 
     Ok(())

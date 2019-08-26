@@ -20,13 +20,9 @@ async fn send_single_message() -> Result<()> {
     let ctx = Context::new();
     let sock = push(&ctx).connect(&address)?.finish();
 
-    let thread = sync_receive_multiparts(
-        address,
-        SocketType::PULL,
-        vec![vec![msg(b"hello"), msg(b"world")]],
-    );
+    let thread = sync_receive_multiparts(address, SocketType::PULL, vec![vec!["hello", "world"]]);
 
-    send_multiparts(sock, vec![vec![msg(b"hello"), msg(b"world")]]).await?;
+    send_multiparts(sock, vec![vec!["hello", "world"]]).await?;
 
     thread.join().unwrap();
 
@@ -39,25 +35,15 @@ async fn send_multiple_messages() -> Result<()> {
     let ctx = Context::new();
     let sock = push(&ctx).connect(&address)?.finish();
 
-    let thread = sync_receive_multiparts(
-        address,
-        SocketType::PULL,
-        vec![
-            vec![msg(b"hello"), msg(b"world")],
-            vec![msg(b"second"), msg(b"message")],
-            vec![msg(b"third"), msg(b"message")],
-        ],
-    );
+    let data = vec![
+        vec!["hello", "world"],
+        vec!["second", "message"],
+        vec!["third", "message"],
+    ];
 
-    send_multiparts(
-        sock,
-        vec![
-            vec![msg(b"hello"), msg(b"world")],
-            vec![msg(b"second"), msg(b"message")],
-            vec![msg(b"third"), msg(b"message")],
-        ],
-    )
-    .await?;
+    let thread = sync_receive_multiparts(address, SocketType::PULL, data.clone());
+
+    send_multiparts(sock, data).await?;
 
     thread.join().unwrap();
 
@@ -70,17 +56,10 @@ async fn send_empty_message() -> Result<()> {
     let ctx = Context::new();
     let sock = push(&ctx).connect(&address)?.finish();
 
-    let thread = sync_receive_multiparts(
-        address,
-        SocketType::PULL,
-        vec![vec![msg(b"hello"), msg(b"world")]],
-    );
+    let data = vec!["hello", "world"];
+    let thread = sync_receive_multiparts(address, SocketType::PULL, vec![data.clone()]);
 
-    send_multiparts(
-        sock,
-        vec![vec![], vec![], vec![], vec![msg(b"hello"), msg(b"world")]],
-    )
-    .await?;
+    send_multiparts(sock, vec![vec![], vec![], vec![], data]).await?;
 
     thread.join().unwrap();
 
@@ -94,14 +73,10 @@ async fn send_hammer() -> Result<()> {
     let sock = push(&ctx).connect(&address)?.finish();
 
     let count = 1_000;
-    let thread = sync_receive_multipart_repeated(
-        address,
-        SocketType::PULL,
-        vec![b"hello".to_vec(), b"world".to_vec()],
-        count,
-    );
+    let data = vec!["hello", "world"];
+    let thread = sync_receive_multipart_repeated(address, SocketType::PULL, data.clone(), count);
 
-    send_multipart_repeated(sock, vec![b"hello".to_vec(), b"world".to_vec()], count).await?;
+    send_multipart_repeated(sock, data, count).await?;
 
     thread.join().unwrap();
 
