@@ -2,7 +2,8 @@ use std::io;
 
 use mio::{unix::EventedFd, Evented, Poll, PollOpt, Ready, Token};
 
-use crate::Result;
+use crate::{Result, Multipart};
+use futures::{Stream, Sink};
 
 pub(crate) struct SocketWrapper {
     pub(crate) socket: zmq::Socket,
@@ -39,7 +40,6 @@ impl Evented for SocketWrapper {
 }
 
 pub trait AsZmqSocket {
-    #[inline]
     fn get_socket(&self) -> &zmq::Socket;
 }
 
@@ -206,4 +206,11 @@ impl<T: AsZmqSocket> SocketExt for T {
 
     getter!(get_backlog, i32);
     setter!(set_backlog, i32);
+}
+
+pub trait SplitSocketExt {
+    type ReadHalf: Stream<Item=Result<Multipart>>;
+    type WriteHalf: Sink<Multipart>;
+
+    fn split_socket(self) -> (Self::ReadHalf, Self::WriteHalf);
 }

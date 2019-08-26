@@ -10,7 +10,7 @@ pub use zmq::{Context, Message};
 pub use crate::message::Multipart;
 pub use error::TmqError;
 
-pub use socket::SocketExt;
+pub use socket::{SocketExt, SplitSocketExt};
 pub use socket_types::*;
 
 #[macro_use]

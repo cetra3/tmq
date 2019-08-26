@@ -1,6 +1,7 @@
 use zmq::{self, Context as ZmqContext};
 
-use crate::poll::EventedSocket;
+use crate::poll::ZmqPoller;
+use crate::Multipart;
 
 pub fn router(context: &ZmqContext) -> RouterBuilder {
     RouterBuilder { context }
@@ -22,15 +23,17 @@ pub struct RouterBuilderBound {
 impl RouterBuilderBound {
     pub fn finish(self) -> Router {
         Router {
-            socket: EventedSocket::from_zmq_socket(self.socket),
+            socket: ZmqPoller::from_zmq_socket(self.socket),
+            buffer: Multipart::default()
         }
     }
 }
 
 pub struct Router {
-    socket: EventedSocket,
+    socket: ZmqPoller,
+    buffer: Multipart
 }
 
 impl_socket!(Router, socket);
 impl_stream!(Router, socket);
-impl_sink!(Router, socket);
+impl_sink!(Router, buffer, socket);

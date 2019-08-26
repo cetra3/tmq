@@ -1,6 +1,7 @@
 use zmq::{self, Context as ZmqContext};
 
-use crate::poll::EventedSocket;
+use crate::poll::ZmqPoller;
+use crate::Multipart;
 
 pub fn push(context: &ZmqContext) -> PushBuilder {
     PushBuilder { context }
@@ -21,14 +22,16 @@ pub struct PushBuilderBound {
 impl PushBuilderBound {
     pub fn finish(self) -> Push {
         Push {
-            socket: EventedSocket::from_zmq_socket(self.socket),
+            socket: ZmqPoller::from_zmq_socket(self.socket),
+            buffer: Multipart::default()
         }
     }
 }
 
 pub struct Push {
-    socket: EventedSocket,
+    socket: ZmqPoller,
+    buffer: Multipart
 }
 
 impl_socket!(Push, socket);
-impl_sink!(Push, socket);
+impl_sink!(Push, buffer, socket);

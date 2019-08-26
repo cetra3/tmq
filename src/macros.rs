@@ -15,28 +15,31 @@ macro_rules! impl_socket {
 /// $socket: identifier of a field containing an `EventedSocket`
 /// $buffer: identifier of af ield containing `Option<Multipart>`
 macro_rules! impl_sink {
-    ($type: ty, $socket: ident) => {
+    ($type: ty, $buffer: ident, $socket: ident) => {
         impl<T: Into<crate::Multipart>> futures::Sink<T> for $type {
             type Error = crate::TmqError;
 
             fn poll_ready(
-                mut self: std::pin::Pin<&mut Self>,
+                self: std::pin::Pin<&mut Self>,
                 cx: &mut std::task::Context<'_>,
             ) -> std::task::Poll<crate::Result<()>> {
-                futures::ready!(self.$socket.multipart_flush(cx))?;
-                self.$socket.multipart_poll_ready(cx)
+                let Self { ref $socket, ref mut $buffer } = self.get_mut();
+                futures::ready!($socket.multipart_flush(cx, $buffer))?;
+                std::task::Poll::Ready(crate::Result::Ok(()))
             }
 
             fn start_send(mut self: std::pin::Pin<&mut Self>, item: T) -> crate::Result<()> {
-                self.$socket.multipart_set_buffer(item.into());
+                assert!(self.$buffer.is_empty());
+                self.$buffer = item.into();
                 crate::Result::Ok(())
             }
 
             fn poll_flush(
-                mut self: std::pin::Pin<&mut Self>,
+                self: std::pin::Pin<&mut Self>,
                 cx: &mut std::task::Context<'_>,
             ) -> std::task::Poll<crate::Result<()>> {
-                self.$socket.multipart_flush(cx)
+                let Self { ref $socket, ref mut $buffer } = self.get_mut();
+                $socket.multipart_flush(cx, $buffer)
             }
 
             fn poll_close(
@@ -57,12 +60,42 @@ macro_rules! impl_stream {
             type Item = crate::Result<crate::Multipart>;
 
             fn poll_next(
-                mut self: std::pin::Pin<&mut Self>,
+                self: std::pin::Pin<&mut Self>,
                 cx: &mut std::task::Context,
             ) -> std::task::Poll<std::option::Option<Self::Item>> {
                 self.$socket.multipart_recv(cx)
             }
         }
+    };
+}
+
+macro_rules! impl_split {
+    ($type: ty, $read: tt, $write: tt, $socket: ident, $buffer: ident) => {
+        impl crate::SplitSocketExt for $type {
+            type ReadHalf = $read;
+            type WriteHalf = $write;
+
+            fn split_socket(self) -> (Self::ReadHalf, Self::WriteHalf) {
+                let rc = std::rc::Rc::new(self.$socket);
+                (Self::ReadHalf {
+                    $socket: rc.clone()
+                }, Self::WriteHalf {
+                    $socket: rc,
+                    $buffer: self.$buffer
+                })
+            }
+        }
+
+        pub struct $read {
+            $socket: std::rc::Rc<crate::poll::ZmqPoller>
+        }
+        impl_stream!($read, socket);
+
+        pub struct $write {
+            $socket: std::rc::Rc<crate::poll::ZmqPoller>,
+            $buffer: crate::Multipart
+        }
+        impl_sink!($write, $buffer, $socket);
     };
 }
 

@@ -1,12 +1,13 @@
 #![feature(async_await)]
 
-use futures::{SinkExt, StreamExt};
-use zmq::{Context, SocketType};
+use futures::{SinkExt, StreamExt, TryStreamExt};
+use futures::{TryFutureExt, FutureExt};
+use zmq::{Context, SocketType, Socket};
 
 use std::thread::spawn;
 use std::time::Duration;
-use tmq::{dealer, Multipart, Result, SocketExt};
-use tokio::future::FutureExt;
+use tmq::{dealer, Multipart, Result, SocketExt, TmqError, SplitSocketExt};
+use tokio::future::{FutureExt as TokioFutureExt};
 use utils::{
     generate_tcp_addres, msg, send_multipart_repeated, send_multiparts, sync_echo,
     sync_receive_multipart_repeated, sync_receive_multiparts,
@@ -168,6 +169,43 @@ async fn proxy_interleaved() -> Result<()> {
     }
 
     echo.join().unwrap();
+
+    Ok(())
+}
+
+#[test]
+fn split_echo() -> Result<()> {
+    let address = generate_tcp_addres();
+    let ctx = Context::new();
+    let mut sock = dealer(&ctx).bind(&address)?.finish();
+
+    let (rx, tx) = sock.split_socket();
+
+    let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+
+    let count = 10;
+    runtime.spawn(rx
+        .take(count)
+        .forward(tx)
+        .map_err(|e| panic!(e))
+        .map(|_| ()));
+
+    let thread = spawn(move || {
+        let ctx = Context::new();
+        let sender = ctx.socket(SocketType::DEALER).unwrap();
+        sender.connect(&address).unwrap();
+
+        for _ in 0..count {
+            sender.send_multipart(vec!("hello", "world").into_iter(), 0).unwrap();
+            assert_eq!(sender.recv_multipart(0).unwrap(), vec!(
+                b"hello".to_vec(),
+                b"world".to_vec()
+            ));
+        }
+    });
+
+    runtime.run().unwrap();
+    thread.join().unwrap();
 
     Ok(())
 }

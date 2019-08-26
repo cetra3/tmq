@@ -1,6 +1,6 @@
 use zmq::{self, Context as ZmqContext};
 
-use crate::poll::EventedSocket;
+use crate::poll::ZmqPoller;
 
 pub fn pull(context: &ZmqContext) -> PullBuilder {
     PullBuilder { context }
@@ -21,13 +21,13 @@ pub struct PullBuilderBound {
 impl PullBuilderBound {
     pub fn finish(self) -> Pull {
         Pull {
-            socket: EventedSocket::from_zmq_socket(self.socket),
+            socket: ZmqPoller::from_zmq_socket(self.socket),
         }
     }
 }
 
 pub struct Pull {
-    socket: EventedSocket,
+    socket: ZmqPoller,
 }
 
 impl_socket!(Pull, socket);
