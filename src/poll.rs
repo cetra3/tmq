@@ -34,7 +34,7 @@ impl ZmqPoller {
     pub(crate) fn multipart_recv_buffered(
         &self,
         cx: &mut Context<'_>,
-        read_buffer: &mut ReceiveBuffer,
+        read_buffer: &mut ReceiverBuffer,
     ) -> Poll<Option<Result<Multipart>>> {
         if read_buffer.is_empty() {
             ready!(self.multipart_poll_read_ready(cx))?;
@@ -190,12 +190,12 @@ impl Deref for ZmqPoller {
     }
 }
 
-pub(crate) struct ReceiveBuffer {
+pub(crate) struct ReceiverBuffer {
     capacity: usize,
     buffer: VecDeque<Multipart>,
 }
 
-impl ReceiveBuffer {
+impl ReceiverBuffer {
     pub(crate) fn new(capacity: usize) -> Self {
         assert!(capacity > 0);
         let buffer = VecDeque::with_capacity(capacity);

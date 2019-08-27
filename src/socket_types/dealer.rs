@@ -1,7 +1,7 @@
 use zmq::{self, Context as ZmqContext};
 
+use crate::comm::SenderReceiver;
 use crate::poll::ZmqPoller;
-use crate::wrapper::SendReceiveWrapper;
 
 pub fn dealer(context: &ZmqContext) -> DealerBuilder {
     DealerBuilder { context }
@@ -23,13 +23,15 @@ pub struct DealerBuilderBound {
 impl DealerBuilderBound {
     pub fn finish(self) -> Dealer {
         Dealer {
-            inner: SendReceiveWrapper::new(ZmqPoller::from_zmq_socket(self.socket)),
+            inner: SenderReceiver::new(ZmqPoller::from_zmq_socket(self.socket)),
         }
     }
 }
 
 pub struct Dealer {
-    inner: SendReceiveWrapper,
+    inner: SenderReceiver,
 }
-impl_wrapper_deref!(Dealer, SendReceiveWrapper, inner);
+impl_wrapper!(Dealer, SenderReceiver, inner);
+impl_wrapper_sink!(Dealer, inner);
+impl_wrapper_stream!(Dealer, inner);
 impl_split!(Dealer, inner);

@@ -1,7 +1,7 @@
 use zmq::{self, Context as ZmqContext};
 
+use crate::comm::Sender;
 use crate::poll::ZmqPoller;
-use crate::wrapper::SendWrapper;
 
 pub fn push(context: &ZmqContext) -> PushBuilder {
     PushBuilder { context }
@@ -22,12 +22,13 @@ pub struct PushBuilderBound {
 impl PushBuilderBound {
     pub fn finish(self) -> Push {
         Push {
-            inner: SendWrapper::new(ZmqPoller::from_zmq_socket(self.socket)),
+            inner: Sender::new(ZmqPoller::from_zmq_socket(self.socket)),
         }
     }
 }
 
 pub struct Push {
-    inner: SendWrapper,
+    inner: Sender,
 }
-impl_wrapper_deref!(Push, SendWrapper, inner);
+impl_wrapper!(Push, Sender, inner);
+impl_wrapper_sink!(Push, inner);

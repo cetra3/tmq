@@ -106,11 +106,10 @@ pub fn sync_echo(address: String, socket_type: SocketType, count: u64) -> JoinHa
 
 /// Functions for sending and receiving using the asynchronous sockets.
 pub async fn check_receive_multiparts<
-    D: DerefMut<Target = S>,
     S: Stream<Item = Result<Multipart>> + Unpin,
     T: Into<zmq::Message>,
 >(
-    mut stream: D,
+    mut stream: S,
     expected: Vec<Vec<T>>,
 ) -> Result<()> {
     for item in expected.into_iter() {
@@ -126,11 +125,10 @@ pub async fn check_receive_multiparts<
     Ok(())
 }
 pub async fn receive_multipart_repeated<
-    D: DerefMut<Target = S>,
     S: Stream<Item = Result<Multipart>> + Unpin,
     T: Into<zmq::Message>,
 >(
-    mut stream: D,
+    mut stream: S,
     expected: Vec<T>,
     count: u64,
 ) -> Result<()> {
@@ -145,11 +143,10 @@ pub async fn receive_multipart_repeated<
     Ok(())
 }
 pub async fn send_multiparts<
-    D: DerefMut<Target = S>,
     S: Sink<Multipart, Error = TmqError> + Unpin,
     T: Into<zmq::Message>,
 >(
-    mut sink: D,
+    mut sink: S,
     messages: Vec<Vec<T>>,
 ) -> Result<()> {
     for message in messages.into_iter() {
@@ -160,11 +157,10 @@ pub async fn send_multiparts<
     Ok(())
 }
 pub async fn send_multipart_repeated<
-    D: DerefMut<Target = S>,
     S: Sink<Multipart, Error = TmqError> + Unpin,
     T: Into<zmq::Message> + Clone,
 >(
-    mut sink: D,
+    mut sink: S,
     message: Vec<T>,
     count: u64,
 ) -> Result<()> {

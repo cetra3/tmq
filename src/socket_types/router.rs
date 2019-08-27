@@ -1,7 +1,7 @@
 use zmq::{self, Context as ZmqContext};
 
+use crate::comm::SenderReceiver;
 use crate::poll::ZmqPoller;
-use crate::wrapper::SendReceiveWrapper;
 use crate::{socket::AsZmqSocket, Result};
 
 pub fn router(context: &ZmqContext) -> RouterBuilder {
@@ -24,15 +24,17 @@ pub struct RouterBuilderBound {
 impl RouterBuilderBound {
     pub fn finish(self) -> Router {
         Router {
-            inner: SendReceiveWrapper::new(ZmqPoller::from_zmq_socket(self.socket)),
+            inner: SenderReceiver::new(ZmqPoller::from_zmq_socket(self.socket)),
         }
     }
 }
 
 pub struct Router {
-    inner: SendReceiveWrapper,
+    inner: SenderReceiver,
 }
-impl_wrapper_deref!(Router, SendReceiveWrapper, inner);
+impl_wrapper!(Router, SenderReceiver, inner);
+impl_wrapper_sink!(Router, inner);
+impl_wrapper_stream!(Router, inner);
 impl_split!(Router, inner);
 
 impl Router {

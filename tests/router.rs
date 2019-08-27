@@ -1,12 +1,10 @@
 #![feature(async_await)]
 
-use futures::{SinkExt, StreamExt};
+use futures::StreamExt;
 use zmq::{Context, SocketType};
 
-use std::thread::spawn;
-use std::time::Duration;
-use tmq::{router, Multipart, Result, SocketExt};
-use tokio::future::FutureExt;
+use tmq::{router, Multipart, Result};
+
 use utils::{
     check_receive_multiparts, generate_tcp_addres, msg, send_multipart_repeated, send_multiparts,
     sync_echo, sync_receive_multipart_repeated, sync_receive_multiparts,

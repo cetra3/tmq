@@ -6,19 +6,22 @@ pub type Result<T> = std::result::Result<T, TmqError>;
 /// External re-exports
 pub use zmq::{Context, Message};
 
-/// Internal re-exports
-pub use crate::message::Multipart;
 pub use error::TmqError;
+/// Internal re-exports
+pub use message::Multipart;
 
 pub use socket::SocketExt;
 pub use socket_types::*;
 
+/// Crate re-exports
+pub(crate) use comm::*;
+
 #[macro_use]
 mod macros;
 
+mod comm;
 mod error;
 mod message;
 mod poll;
 mod socket;
 mod socket_types;
-mod wrapper;

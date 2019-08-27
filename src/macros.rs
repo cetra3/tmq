@@ -1,16 +1,12 @@
 /// Utility implementations
-macro_rules! impl_wrapper_deref {
-    ($type: ty, $target: ty, $field: ident) => {
-        impl std::ops::Deref for $type {
-            type Target = $target;
 
-            fn deref(&self) -> &Self::Target {
-                &self.$field
-            }
-        }
-        impl std::ops::DerefMut for $type {
-            fn deref_mut(&mut self) -> &mut Self::Target {
-                &mut self.$field
+/// Implements common functions for a Socket wrapper.
+macro_rules! impl_wrapper {
+    ($type: ty, $target: ty, $field: ident) => {
+        impl crate::socket::AsZmqSocket for $type {
+            #[inline]
+            fn get_socket(&self) -> &zmq::Socket {
+                &self.$field.get_socket()
             }
         }
         impl $type {
@@ -21,38 +17,90 @@ macro_rules! impl_wrapper_deref {
     };
 }
 
-/// Implements AsZmqSocket for the given type.
-/// $socket: identifier of a field containing an `EventedSocket`
-macro_rules! impl_as_socket {
-    ($type: ty, $socket: ident) => {
-        impl crate::socket::AsZmqSocket for $type {
+/// Implements `Sink<Multipart, Error=TmqError>` for a Socket wrapping an inner `Sender`.
+macro_rules! impl_wrapper_sink {
+    ($type: ty, $field: ident) => {
+        impl<T: Into<crate::Multipart>> futures::Sink<T> for $type {
+            type Error = crate::TmqError;
+
             #[inline]
-            fn get_socket(&self) -> &zmq::Socket {
-                &self.$socket.get_socket()
+            fn poll_ready(
+                mut self: std::pin::Pin<&mut Self>,
+                cx: &mut std::task::Context<'_>,
+            ) -> std::task::Poll<crate::Result<()>> {
+                futures::Sink::<T>::poll_ready(std::pin::Pin::new(&mut self.$field), cx)
+            }
+
+            #[inline]
+            fn start_send(mut self: std::pin::Pin<&mut Self>, item: T) -> crate::Result<()> {
+                futures::Sink::<T>::start_send(std::pin::Pin::new(&mut self.$field), item)
+            }
+
+            #[inline]
+            fn poll_flush(
+                mut self: std::pin::Pin<&mut Self>,
+                cx: &mut std::task::Context<'_>,
+            ) -> std::task::Poll<crate::Result<()>> {
+                futures::Sink::<T>::poll_flush(std::pin::Pin::new(&mut self.$field), cx)
+            }
+
+            #[inline]
+            fn poll_close(
+                mut self: std::pin::Pin<&mut Self>,
+                cx: &mut std::task::Context<'_>,
+            ) -> std::task::Poll<crate::Result<()>> {
+                futures::Sink::<T>::poll_close(std::pin::Pin::new(&mut self.$field), cx)
             }
         }
     };
 }
 
+/// Implements `Stream<Item=Result<Multipart>` for a Socket wrapping an inner `Receiver`.
+macro_rules! impl_wrapper_stream {
+    ($type: ty, $field: ident) => {
+        impl futures::Stream for $type {
+            type Item = crate::Result<crate::Multipart>;
+
+            #[inline]
+            fn poll_next(
+                mut self: std::pin::Pin<&mut Self>,
+                cx: &mut std::task::Context,
+            ) -> std::task::Poll<std::option::Option<Self::Item>> {
+                std::pin::Pin::new(&mut self.$field).poll_next(cx)
+            }
+        }
+    };
+}
+
+/// Implements AsZmqSocket for the given type.
+/// field: identifier of a field containing a `ZmqPoller`.
+macro_rules! impl_as_socket {
+    ($type: ty, $field: ident) => {
+        impl crate::socket::AsZmqSocket for $type {
+            #[inline]
+            fn get_socket(&self) -> &zmq::Socket {
+                &self.$field.get_socket()
+            }
+        }
+    };
+}
+
+/// Implements a `split` method for a Socket wrapping an inner `SenderReceiver`.
 macro_rules! impl_split {
     ($type: ty, $field: ident) => {
         impl $type {
-            pub fn split(
-                self,
-            ) -> (
-                crate::wrapper::ReceiveWrapperShared,
-                crate::wrapper::SendWrapperShared,
-            ) {
+            pub fn split(self) -> (crate::SharedReceiver, crate::SharedSender) {
                 self.$field.split()
             }
         }
     };
 }
 
+/// Implements a `buffered` method for a Socket wrapping an inner `Receiver`.
 macro_rules! impl_buffered {
     ($type: ty, $field: ident) => {
         impl $type {
-            pub fn buffered(self, capacity: usize) -> crate::wrapper::BufferedReceiveWrapper {
+            pub fn buffered(self, capacity: usize) -> crate::BufferedReceiver {
                 self.$field.buffered(capacity)
             }
         }
@@ -61,8 +109,8 @@ macro_rules! impl_buffered {
 
 /// Async read/write implementations
 /// Implements Sink<T: Into<Multipart>> for the given type.
-/// $socket: identifier of a field containing an `EventedSocket`
-/// $buffer: identifier of af ield containing `Option<Multipart>`
+/// $buffer: identifier of a field containing a `Multipart`
+/// $socket: identifier of a field containing a `ZmqPoller`
 macro_rules! impl_sink {
     ($type: ty, $buffer: ident, $socket: ident) => {
         impl<T: Into<crate::Multipart>> futures::Sink<T> for $type {
@@ -107,8 +155,8 @@ macro_rules! impl_sink {
     };
 }
 
-/// Implements Stream<Multipart> for the given type.
-/// $socket: identifier of a field containing an `EventedSocket`
+/// Implements `Stream<Item=Result<Multipart>>` for the given type.
+/// $socket: identifier of a field containing a `ZmqPoller`
 macro_rules! impl_stream {
     ($type: ty, $socket: ident) => {
         impl futures::Stream for $type {
@@ -124,6 +172,9 @@ macro_rules! impl_stream {
     };
 }
 
+/// Implements a buffered `Stream<Item=Result<Multipart>>` for the given type.
+/// $buffer: identifier of a field containing a `ReceiveBuffer`
+/// $socket: identifier of a field containing a `ZmqPoller`
 macro_rules! impl_buffered_stream {
     ($type: ty, $buffer: ident, $socket: ident) => {
         impl futures::Stream for $type {
