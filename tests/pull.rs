@@ -1,13 +1,12 @@
-#![feature(async_await)]
-
 use zmq::{Context, SocketType};
 
 use futures::StreamExt;
 use std::sync::{Arc, Barrier};
 use std::thread::spawn;
-use tmq::{pull, Result, SocketExt};
+use tmq::{pull, Multipart, Result, SocketExt};
+use tokio::prelude::Stream;
 use utils::{
-    check_receive_multiparts, generate_tcp_addres, receive_multipart_repeated,
+    check_receive_multiparts, generate_tcp_addres, hammer_receive, receive_multipart_repeated,
     sync_send_multipart_repeated, sync_send_multiparts,
 };
 
@@ -56,16 +55,15 @@ async fn receive_hammer() -> Result<()> {
     let address = generate_tcp_addres();
     let ctx = Context::new();
     let sock = pull(&ctx).bind(&address)?.finish();
+    hammer_receive(sock, address, SocketType::PUSH).await
+}
 
-    let count: u64 = 1_000_000;
-    let thread =
-        sync_send_multipart_repeated(address, SocketType::PUSH, vec!["hello", "world"], count);
-
-    receive_multipart_repeated(sock, vec!["hello", "world"], count).await?;
-
-    thread.join().unwrap();
-
-    Ok(())
+#[tokio::test]
+async fn receive_buffered_hammer() -> Result<()> {
+    let address = generate_tcp_addres();
+    let ctx = Context::new();
+    let sock = pull(&ctx).bind(&address)?.finish();
+    hammer_receive(sock.buffered(1024), address, SocketType::PUSH).await
 }
 
 #[tokio::test]

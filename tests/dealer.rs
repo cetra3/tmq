@@ -1,14 +1,13 @@
-#![feature(async_await)]
-
-use futures::{FutureExt, TryFutureExt};
-use futures::{SinkExt, StreamExt};
+use futures::{FutureExt, TryFutureExt, SinkExt, StreamExt};
 use zmq::{Context, SocketType};
 
 use std::thread::spawn;
 use tmq::{dealer, Multipart, Result};
+use tokio::prelude::Stream;
 use utils::{
-    generate_tcp_addres, msg, send_multipart_repeated, send_multiparts, sync_echo,
-    sync_receive_multipart_repeated, sync_receive_multiparts,
+    generate_tcp_addres, hammer_receive, msg, receive_multipart_repeated, send_multipart_repeated,
+    send_multiparts, sync_echo, sync_receive_multipart_repeated, sync_receive_multiparts,
+    sync_send_multipart_repeated,
 };
 
 mod utils;
@@ -80,6 +79,23 @@ async fn send_hammer() -> Result<()> {
     thread.join().unwrap();
 
     Ok(())
+}
+
+#[tokio::test]
+async fn receive_hammer() -> Result<()> {
+    let address = generate_tcp_addres();
+    let ctx = Context::new();
+    let sock = dealer(&ctx).bind(&address)?.finish();
+    hammer_receive(sock, address, SocketType::DEALER).await
+}
+
+#[tokio::test]
+async fn receive_buffered_hammer() -> Result<()> {
+    let address = generate_tcp_addres();
+    let ctx = Context::new();
+    let sock = dealer(&ctx).bind(&address)?.finish();
+    let (rx, tx) = sock.split();
+    hammer_receive(rx.buffered(1024), address, SocketType::DEALER).await
 }
 
 #[tokio::test]

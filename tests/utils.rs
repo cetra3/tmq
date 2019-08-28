@@ -1,4 +1,4 @@
-#![feature(async_await)]
+#![allow(dead_code)]
 
 use std::thread::{spawn, JoinHandle};
 
@@ -7,7 +7,6 @@ use zmq::{Context, SocketType};
 
 use futures::StreamExt;
 use rand::Rng;
-use std::ops::DerefMut;
 use tmq::{Multipart, Result, TmqError};
 
 /// Synchronous send and receive functions running in a separate thread.
@@ -174,6 +173,20 @@ pub async fn send_multipart_repeated<
         )
         .await?;
     }
+
+    Ok(())
+}
+pub async fn hammer_receive<S: Stream<Item = Result<Multipart>> + Unpin>(
+    stream: S,
+    address: String,
+    socket_type: SocketType,
+) -> Result<()> {
+    let count: u64 = 1_000_000;
+    let thread = sync_send_multipart_repeated(address, socket_type, vec!["hello", "world"], count);
+
+    receive_multipart_repeated(stream, vec!["hello", "world"], count).await?;
+
+    thread.join().unwrap();
 
     Ok(())
 }

@@ -1,5 +1,3 @@
-#![feature(async_await)]
-
 use zmq::{Context, SocketType};
 
 use futures::SinkExt;
