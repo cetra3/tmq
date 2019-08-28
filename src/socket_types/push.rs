@@ -1,7 +1,6 @@
 use zmq::{self, Context as ZmqContext};
 
-use crate::comm::Sender;
-use crate::poll::ZmqPoller;
+use crate::{comm::Sender, poll::ZmqPoller};
 
 pub fn push(context: &ZmqContext) -> PushBuilder {
     PushBuilder { context }

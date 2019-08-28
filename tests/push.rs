@@ -1,8 +1,7 @@
 use zmq::{Context, SocketType};
 
 use futures::SinkExt;
-use std::thread::spawn;
-use std::time::Duration;
+use std::{thread::spawn, time::Duration};
 use tmq::{push, Result, SocketExt};
 use tokio::future::FutureExt;
 use utils::{

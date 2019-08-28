@@ -1,8 +1,10 @@
 use zmq::{Context, SocketType};
 
 use futures::StreamExt;
-use std::sync::{Arc, Barrier};
-use std::thread::spawn;
+use std::{
+    sync::{Arc, Barrier},
+    thread::spawn,
+};
 use tmq::{pull, Multipart, Result, SocketExt};
 use tokio::prelude::Stream;
 use utils::{

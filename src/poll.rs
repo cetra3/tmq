@@ -5,10 +5,8 @@ use mio::Ready;
 use tokio::reactor::PollEvented;
 use zmq;
 
-use crate::socket::SocketWrapper;
-use crate::{Multipart, Result};
-use std::collections::VecDeque;
-use std::ops::Deref;
+use crate::{socket::SocketWrapper, Multipart, Result};
+use std::{collections::VecDeque, ops::Deref};
 
 /// Wrapper on top of a ZeroMQ socket, implements functions for asynchronous reading and writing
 /// of multipart messages.

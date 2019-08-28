@@ -1,8 +1,6 @@
 use zmq::{self, Context as ZmqContext};
 
-use crate::comm::SenderReceiver;
-use crate::poll::ZmqPoller;
-use crate::{socket::AsZmqSocket, Result};
+use crate::{comm::SenderReceiver, poll::ZmqPoller, socket::AsZmqSocket, Result};
 
 pub fn router(context: &ZmqContext) -> RouterBuilder {
     RouterBuilder { context }

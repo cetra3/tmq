@@ -1,5 +1,7 @@
-use crate::poll::{ReceiverBuffer, ZmqPoller};
-use crate::Multipart;
+use crate::{
+    poll::{ReceiverBuffer, ZmqPoller},
+    Multipart,
+};
 use std::rc::Rc;
 
 type Poller = ZmqPoller;

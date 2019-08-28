@@ -1,4 +1,4 @@
-use futures::{FutureExt, TryFutureExt, SinkExt, StreamExt};
+use futures::{FutureExt, SinkExt, StreamExt, TryFutureExt};
 use zmq::{Context, SocketType};
 
 use std::thread::spawn;

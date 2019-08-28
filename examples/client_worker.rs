@@ -15,9 +15,11 @@
 
 use futures::{future, SinkExt, StreamExt};
 use rand::Rng;
-use std::error::Error;
-use std::rc::Rc;
-use std::time::{Duration, Instant};
+use std::{
+    error::Error,
+    rc::Rc,
+    time::{Duration, Instant},
+};
 use tmq::{dealer, router, Context, Multipart};
 use tokio::timer::Delay;
 

@@ -1,6 +1,8 @@
-use std::collections::VecDeque;
-use std::iter::FromIterator;
-use std::ops::{Index, IndexMut};
+use std::{
+    collections::VecDeque,
+    iter::FromIterator,
+    ops::{Index, IndexMut},
+};
 use zmq::Message;
 
 #[derive(Debug)]

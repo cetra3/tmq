@@ -1,7 +1,6 @@
 use zmq::{self, Context as ZmqContext};
 
-use crate::comm::Receiver;
-use crate::poll::ZmqPoller;
+use crate::{comm::Receiver, poll::ZmqPoller};
 
 pub fn pull(context: &ZmqContext) -> PullBuilder {
     PullBuilder { context }

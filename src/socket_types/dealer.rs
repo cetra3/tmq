@@ -1,7 +1,6 @@
 use zmq::{self, Context as ZmqContext};
 
-use crate::comm::SenderReceiver;
-use crate::poll::ZmqPoller;
+use crate::{comm::SenderReceiver, poll::ZmqPoller};
 
 pub fn dealer(context: &ZmqContext) -> DealerBuilder {
     DealerBuilder { context }
