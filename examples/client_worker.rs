@@ -15,16 +15,12 @@
 
 use futures::{future, SinkExt, StreamExt};
 use rand::Rng;
-use std::{
-    error::Error,
-    rc::Rc,
-    time::{Duration, Instant},
-};
+use std::{error::Error, rc::Rc, time::Duration};
 use tmq::{dealer, router, Context, Multipart};
-use tokio::timer::Delay;
+use tokio::time::delay_for;
 
 async fn client(ctx: Rc<Context>, client_id: u64, frontend: String) -> tmq::Result<()> {
-    let mut sock = dealer(&ctx).connect(&frontend)?.finish();
+    let mut sock = dealer(&ctx).connect(&frontend)?.finish()?;
     let mut rng = rand::thread_rng();
 
     let client_id = client_id.to_string();
@@ -50,12 +46,12 @@ async fn client(ctx: Rc<Context>, client_id: u64, frontend: String) -> tmq::Resu
         assert_eq!(expected, response);
 
         let sleep_time = rng.gen_range(200, 1000);
-        Delay::new(Instant::now() + Duration::from_millis(sleep_time)).await;
+        delay_for(Duration::from_millis(sleep_time)).await;
         request_id += 1;
     }
 }
 async fn worker(ctx: Rc<Context>, worker_id: u64, backend: String) -> Result<(), Box<dyn Error>> {
-    let mut sock = dealer(&ctx).connect(&backend)?.finish();
+    let mut sock = dealer(&ctx).connect(&backend)?.finish()?;
     let mut rng = rand::thread_rng();
 
     loop {
@@ -73,7 +69,7 @@ async fn worker(ctx: Rc<Context>, worker_id: u64, backend: String) -> Result<(),
 
         // simulate work
         let sleep_time = rng.gen_range(100, 3000);
-        Delay::new(Instant::now() + Duration::from_millis(sleep_time)).await;
+        delay_for(Duration::from_millis(sleep_time)).await;
 
         let response = vec![identity, request_id, client_id, "response".into()];
         sock.send(response).await?;
@@ -82,8 +78,8 @@ async fn worker(ctx: Rc<Context>, worker_id: u64, backend: String) -> Result<(),
 
 /// Simulates zmq::proxy using asynchronous sockets.
 async fn proxy(ctx: Rc<Context>, frontend: String, backend: String) -> tmq::Result<()> {
-    let (mut router_rx, mut router_tx) = router(&ctx).bind(&frontend)?.finish().split();
-    let (mut dealer_rx, mut dealer_tx) = dealer(&ctx).bind(&backend)?.finish().split();
+    let (mut router_rx, mut router_tx) = router(&ctx).bind(&frontend)?.finish()?.split();
+    let (mut dealer_rx, mut dealer_tx) = dealer(&ctx).bind(&backend)?.finish()?.split();
 
     let mut frontend_fut = router_rx.next();
     let mut backend_fut = dealer_rx.next();
@@ -112,13 +108,17 @@ fn main() -> tmq::Result<()> {
     let backend = "tcp://127.0.0.1:5556".to_string();
     let ctx = Rc::new(Context::new());
 
-    let mut runtime = tokio::runtime::current_thread::Runtime::new()?;
+    let mut runtime = tokio::runtime::Builder::new()
+        .basic_scheduler()
+        .enable_all()
+        .build()?;
+    let tasks = tokio::task::LocalSet::new();
 
     // spawn workers
     for worker_id in 0..2 {
         let ctx = ctx.clone();
         let backend = backend.clone();
-        runtime.spawn(async move {
+        tasks.spawn_local(async move {
             worker(ctx, worker_id, backend)
                 .await
                 .expect("Worker failed");
@@ -129,20 +129,18 @@ fn main() -> tmq::Result<()> {
     for client_id in 0..3 {
         let ctx = ctx.clone();
         let frontend = frontend.clone();
-        runtime.spawn(async move {
+        tasks.spawn_local(async move {
             client(ctx, client_id, frontend)
                 .await
                 .expect("Client failed");
         });
     }
 
-    runtime.spawn(async move {
+    tasks.block_on(&mut runtime, async move {
         proxy(ctx.clone(), frontend, backend)
             .await
             .expect("Proxy failed");
     });
-
-    runtime.run().expect("Runtime failed");
 
     Ok(())
 }

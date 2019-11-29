@@ -9,20 +9,19 @@ readme = "README.md"
 edition = "2018"
 
 [dependencies]
-bytes = "0.4"
-futures-preview = "0.3.0-alpha.17"
+bytes = "0.5"
+futures = "0.3"
+tokio = { version = "=0.2.1", features = ["io-driver"] }
 mio = "0.6"
-tokio = "0.2.0-alpha.1"
-tokio-io = "0.2.0-alpha.1"
-tokio-reactor = "0.2.0-alpha.1"
 zmq = "0.9.0"
 log = "0.4"
 quick-error = "1.2"
 
 [dev-dependencies]
+tokio = { version = "=0.2.1", features = ["full"] }
 pretty_env_logger = "0.2"
 rand = "0.7"
-criterion = "0.2"
+criterion = "0.3"
 
 [[bench]]
 name = "poll"

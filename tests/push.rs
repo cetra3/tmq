@@ -3,9 +3,9 @@ use zmq::{Context, SocketType};
 use futures::SinkExt;
 use std::{thread::spawn, time::Duration};
 use tmq::{push, Result, SocketExt};
-use tokio::future::FutureExt;
+use tokio::time::timeout;
 use utils::{
-    generate_tcp_addres, msg, send_multipart_repeated, send_multiparts,
+    generate_tcp_address, msg, send_multipart_repeated, send_multiparts,
     sync_receive_multipart_repeated, sync_receive_multiparts,
 };
 
@@ -13,9 +13,9 @@ mod utils;
 
 #[tokio::test]
 async fn send_single_message() -> Result<()> {
-    let address = generate_tcp_addres();
+    let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = push(&ctx).connect(&address)?.finish();
+    let sock = push(&ctx).connect(&address)?.finish()?;
 
     let thread = sync_receive_multiparts(address, SocketType::PULL, vec![vec!["hello", "world"]]);
 
@@ -28,9 +28,9 @@ async fn send_single_message() -> Result<()> {
 
 #[tokio::test]
 async fn send_multiple_messages() -> Result<()> {
-    let address = generate_tcp_addres();
+    let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = push(&ctx).connect(&address)?.finish();
+    let sock = push(&ctx).connect(&address)?.finish()?;
 
     let data = vec![
         vec!["hello", "world"],
@@ -49,9 +49,9 @@ async fn send_multiple_messages() -> Result<()> {
 
 #[tokio::test]
 async fn send_empty_message() -> Result<()> {
-    let address = generate_tcp_addres();
+    let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = push(&ctx).connect(&address)?.finish();
+    let sock = push(&ctx).connect(&address)?.finish()?;
 
     let data = vec!["hello", "world"];
     let thread = sync_receive_multiparts(address, SocketType::PULL, vec![data.clone()]);
@@ -65,9 +65,9 @@ async fn send_empty_message() -> Result<()> {
 
 #[tokio::test]
 async fn send_hammer() -> Result<()> {
-    let address = generate_tcp_addres();
+    let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = push(&ctx).connect(&address)?.finish();
+    let sock = push(&ctx).connect(&address)?.finish()?;
 
     let count = 1_000;
     let data = vec!["hello", "world"];
@@ -82,9 +82,9 @@ async fn send_hammer() -> Result<()> {
 
 #[tokio::test]
 async fn send_delayed() -> Result<()> {
-    let address = generate_tcp_addres();
+    let address = generate_tcp_address();
     let ctx = Context::new();
-    let mut sock = push(&ctx).connect(&address)?.finish();
+    let mut sock = push(&ctx).connect(&address)?.finish()?;
 
     // set send high water mark to a single message
     sock.set_sndhwm(1).unwrap();
@@ -93,11 +93,11 @@ async fn send_delayed() -> Result<()> {
     sock.send(vec![msg(b"hello")]).await?;
 
     // assert that send will block now
-    assert!(sock
-        .send(vec!(msg(b"world")))
-        .timeout(Duration::from_millis(200))
-        .await
-        .is_err());
+    assert!(
+        timeout(Duration::from_millis(200), sock.send(vec!(msg(b"world"))))
+            .await
+            .is_err()
+    );
 
     // start the receiver
     let thread = spawn(move || {

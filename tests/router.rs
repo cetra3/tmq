@@ -3,21 +3,17 @@ use zmq::{Context, SocketType};
 
 use tmq::{dealer, router, Multipart, Result};
 
+use futures::Stream;
 use std::thread::{spawn, JoinHandle};
-use tokio::prelude::Stream;
-use utils::{
-    check_receive_multiparts, generate_tcp_addres, msg, receive_multipart_repeated,
-    send_multipart_repeated, send_multiparts, sync_echo, sync_receive_multipart_repeated,
-    sync_receive_multiparts, sync_send_multipart_repeated, sync_send_multiparts,
-};
+use utils::{generate_tcp_address, sync_send_multipart_repeated, sync_send_multiparts};
 
 mod utils;
 
 #[tokio::test]
 async fn receive_single_message() -> Result<()> {
-    let address = generate_tcp_addres();
+    let address = generate_tcp_address();
     let ctx = Context::new();
-    let mut sock = router(&ctx).bind(&address)?.finish();
+    let mut sock = router(&ctx).bind(&address)?.finish()?;
 
     let data = vec!["hello", "world"];
     let thread = sync_send_multiparts(address, SocketType::DEALER, vec![data.clone()]);
@@ -37,9 +33,9 @@ async fn receive_single_message() -> Result<()> {
 
 #[tokio::test]
 async fn receive_multiple_messages() -> Result<()> {
-    let address = generate_tcp_addres();
+    let address = generate_tcp_address();
     let ctx = Context::new();
-    let mut sock = router(&ctx).bind(&address)?.finish();
+    let mut sock = router(&ctx).bind(&address)?.finish()?;
 
     let data = vec![vec!["hello", "world"], vec!["second", "message"]];
 
@@ -54,21 +50,6 @@ async fn receive_multiple_messages() -> Result<()> {
             item.into_iter().map(|i| i.into()).collect::<Multipart>()
         );
     }
-
-    thread.join().unwrap();
-
-    Ok(())
-}
-
-async fn hammer_receive_router<S: Stream<Item = Result<Multipart>> + Unpin>(
-    stream: S,
-    address: String,
-) -> Result<()> {
-    let count: u64 = 1_000_000;
-    let thread =
-        sync_send_multipart_repeated(address, SocketType::DEALER, vec!["hello", "world"], count);
-
-    receive_multipart_repeated(stream, vec!["hello", "world"], count).await?;
 
     thread.join().unwrap();
 
@@ -100,28 +81,28 @@ async fn router_receive_hammer<S: Stream<Item = Result<Multipart>> + Unpin>(
 
 #[tokio::test]
 async fn receive_hammer() -> Result<()> {
-    let address = generate_tcp_addres();
+    let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = router(&ctx).bind(&address)?.finish();
+    let sock = router(&ctx).bind(&address)?.finish()?;
     router_receive_hammer(sock, address).await
 }
 
 #[tokio::test]
 async fn receive_buffered_hammer() -> Result<()> {
-    let address = generate_tcp_addres();
+    let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = router(&ctx).bind(&address)?.finish();
-    let (rx, tx) = sock.split();
+    let sock = router(&ctx).bind(&address)?.finish()?;
+    let (rx, _) = sock.split();
     router_receive_hammer(rx.buffered(1024), address).await
 }
 
 #[tokio::test]
 async fn proxy() -> Result<()> {
-    let frontend = generate_tcp_addres();
-    let backend = generate_tcp_addres();
+    let frontend = generate_tcp_address();
+    let backend = generate_tcp_address();
     let ctx = Context::new();
-    let mut router = router(&ctx).bind(&frontend)?.finish();
-    let mut dealer = dealer(&ctx).bind(&backend)?.finish();
+    let router = router(&ctx).bind(&frontend)?.finish()?;
+    let dealer = dealer(&ctx).bind(&backend)?.finish()?;
 
     let count: u64 = 10_000;
     let client_count: u64 = 3;
@@ -152,9 +133,9 @@ async fn proxy() -> Result<()> {
                 }
             })
         })
-        .collect::<Vec<JoinHandle<()>>>();;
+        .collect::<Vec<JoinHandle<()>>>();
     let workers = (0..worker_count)
-        .map(|i| {
+        .map(|_| {
             let address = backend.clone();
             spawn(move || {
                 let ctx = Context::new();
@@ -170,7 +151,7 @@ async fn proxy() -> Result<()> {
                 }
             })
         })
-        .collect::<Vec<JoinHandle<()>>>();;
+        .collect::<Vec<JoinHandle<()>>>();
 
     // simulates zmq::proxy
     let (mut router_rx, mut router_tx) = router.split();

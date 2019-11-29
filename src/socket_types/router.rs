@@ -20,10 +20,10 @@ pub struct RouterBuilderBound {
 }
 
 impl RouterBuilderBound {
-    pub fn finish(self) -> Router {
-        Router {
-            inner: SenderReceiver::new(ZmqPoller::from_zmq_socket(self.socket)),
-        }
+    pub fn finish(self) -> crate::Result<Router> {
+        Ok(Router {
+            inner: SenderReceiver::new(ZmqPoller::from_zmq_socket(self.socket)?),
+        })
     }
 }
 

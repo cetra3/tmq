@@ -1,8 +1,8 @@
 use std::task::Context;
 
-use futures::{ready, Poll};
+use futures::{ready, task::Poll};
 use mio::Ready;
-use tokio::reactor::PollEvented;
+use tokio::io::PollEvented;
 use zmq;
 
 use crate::{socket::SocketWrapper, Multipart, Result};
@@ -13,8 +13,8 @@ use std::{collections::VecDeque, ops::Deref};
 pub(crate) struct ZmqPoller(PollEvented<SocketWrapper>);
 
 impl ZmqPoller {
-    pub(crate) fn from_zmq_socket(socket: zmq::Socket) -> Self {
-        ZmqPoller(PollEvented::new(SocketWrapper::new(socket)))
+    pub(crate) fn from_zmq_socket(socket: zmq::Socket) -> Result<Self> {
+        Ok(ZmqPoller(PollEvented::new(SocketWrapper::new(socket))?))
     }
 
     pub(crate) fn get_socket(&self) -> &zmq::Socket {

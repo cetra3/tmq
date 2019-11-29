@@ -20,10 +20,10 @@ pub struct DealerBuilderBound {
 }
 
 impl DealerBuilderBound {
-    pub fn finish(self) -> Dealer {
-        Dealer {
-            inner: SenderReceiver::new(ZmqPoller::from_zmq_socket(self.socket)),
-        }
+    pub fn finish(self) -> crate::Result<Dealer> {
+        Ok(Dealer {
+            inner: SenderReceiver::new(ZmqPoller::from_zmq_socket(self.socket)?),
+        })
     }
 }
 

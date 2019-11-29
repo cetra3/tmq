@@ -1,7 +1,7 @@
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use futures::SinkExt;
-use tokio::timer::Delay;
+use tokio::time::delay_for;
 
 use tmq::*;
 
@@ -9,7 +9,7 @@ use tmq::*;
 async fn main() -> Result<()> {
     let mut socket = push(&Context::new())
         .connect("tcp://127.0.0.1:3000")?
-        .finish();
+        .finish()?;
 
     let mut i = 0;
     loop {
@@ -17,9 +17,8 @@ async fn main() -> Result<()> {
         i += 1;
 
         println!("Push: {}", message);
-        let mut multipart = Multipart::new();
-        multipart.push_back(zmq::Message::from(&message));
+        let multipart = Multipart::from(vec![zmq::Message::from(&message)]);
         socket.send(multipart).await?;
-        Delay::new(Instant::now() + Duration::from_millis(1000)).await;
+        delay_for(Duration::from_millis(1000)).await;
     }
 }

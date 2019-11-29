@@ -19,10 +19,10 @@ pub struct PullBuilderBound {
 }
 
 impl PullBuilderBound {
-    pub fn finish(self) -> Pull {
-        Pull {
-            inner: Receiver::new(ZmqPoller::from_zmq_socket(self.socket)),
-        }
+    pub fn finish(self) -> crate::Result<Pull> {
+        Ok(Pull {
+            inner: Receiver::new(ZmqPoller::from_zmq_socket(self.socket)?),
+        })
     }
 }
 

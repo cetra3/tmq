@@ -3,20 +3,18 @@ use zmq::{Context, SocketType};
 
 use std::thread::spawn;
 use tmq::{dealer, Multipart, Result};
-use tokio::prelude::Stream;
 use utils::{
-    generate_tcp_addres, hammer_receive, msg, receive_multipart_repeated, send_multipart_repeated,
-    send_multiparts, sync_echo, sync_receive_multipart_repeated, sync_receive_multiparts,
-    sync_send_multipart_repeated,
+    generate_tcp_address, hammer_receive, msg, send_multipart_repeated, send_multiparts, sync_echo,
+    sync_receive_multipart_repeated, sync_receive_multiparts,
 };
 
 mod utils;
 
 #[tokio::test]
 async fn send_single_message() -> Result<()> {
-    let address = generate_tcp_addres();
+    let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = dealer(&ctx).connect(&address)?.finish();
+    let sock = dealer(&ctx).connect(&address)?.finish()?;
 
     let data = vec![vec!["hello", "world"]];
     let thread = sync_receive_multiparts(address, SocketType::DEALER, data.clone());
@@ -30,9 +28,9 @@ async fn send_single_message() -> Result<()> {
 
 #[tokio::test]
 async fn send_multiple_messages() -> Result<()> {
-    let address = generate_tcp_addres();
+    let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = dealer(&ctx).connect(&address)?.finish();
+    let sock = dealer(&ctx).connect(&address)?.finish()?;
 
     let data = vec![
         vec!["hello", "world"],
@@ -50,9 +48,9 @@ async fn send_multiple_messages() -> Result<()> {
 
 #[tokio::test]
 async fn send_empty_message() -> Result<()> {
-    let address = generate_tcp_addres();
+    let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = dealer(&ctx).connect(&address)?.finish();
+    let sock = dealer(&ctx).connect(&address)?.finish()?;
 
     let data = vec!["hello", "world"];
     let thread = sync_receive_multiparts(address, SocketType::DEALER, vec![data.clone()]);
@@ -66,9 +64,9 @@ async fn send_empty_message() -> Result<()> {
 
 #[tokio::test]
 async fn send_hammer() -> Result<()> {
-    let address = generate_tcp_addres();
+    let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = dealer(&ctx).connect(&address)?.finish();
+    let sock = dealer(&ctx).connect(&address)?.finish()?;
 
     let count = 1_000;
     let data = vec!["hello", "world"];
@@ -83,26 +81,26 @@ async fn send_hammer() -> Result<()> {
 
 #[tokio::test]
 async fn receive_hammer() -> Result<()> {
-    let address = generate_tcp_addres();
+    let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = dealer(&ctx).bind(&address)?.finish();
+    let sock = dealer(&ctx).bind(&address)?.finish()?;
     hammer_receive(sock, address, SocketType::DEALER).await
 }
 
 #[tokio::test]
 async fn receive_buffered_hammer() -> Result<()> {
-    let address = generate_tcp_addres();
+    let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = dealer(&ctx).bind(&address)?.finish();
-    let (rx, tx) = sock.split();
+    let sock = dealer(&ctx).bind(&address)?.finish()?;
+    let (rx, _) = sock.split();
     hammer_receive(rx.buffered(1024), address, SocketType::DEALER).await
 }
 
 #[tokio::test]
 async fn proxy_sequence() -> Result<()> {
-    let address = generate_tcp_addres();
+    let address = generate_tcp_address();
     let ctx = Context::new();
-    let mut sock = dealer(&ctx).connect(&address)?.finish();
+    let mut sock = dealer(&ctx).connect(&address)?.finish()?;
 
     let count = 1_000;
 
@@ -135,9 +133,9 @@ async fn proxy_sequence() -> Result<()> {
 
 #[tokio::test]
 async fn proxy_interleaved() -> Result<()> {
-    let address = generate_tcp_addres();
+    let address = generate_tcp_address();
     let ctx = Context::new();
-    let mut sock = dealer(&ctx).connect(&address)?.finish();
+    let mut sock = dealer(&ctx).connect(&address)?.finish()?;
 
     let count = 1_000;
     let echo = sync_echo(address, SocketType::DEALER, count);
@@ -162,20 +160,12 @@ async fn proxy_interleaved() -> Result<()> {
     Ok(())
 }
 
-#[test]
-fn split_echo() -> Result<()> {
-    let address = generate_tcp_addres();
+#[tokio::test]
+async fn split_echo() -> Result<()> {
+    let address = generate_tcp_address();
     let ctx = Context::new();
-    let (rx, tx) = dealer(&ctx).bind(&address)?.finish().split();
-    let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
-
+    let (rx, tx) = dealer(&ctx).bind(&address)?.finish()?.split();
     let count = 10;
-    runtime.spawn(
-        rx.take(count)
-            .forward(tx)
-            .map_err(|e| panic!(e))
-            .map(|_| ()),
-    );
 
     let thread = spawn(move || {
         let ctx = Context::new();
@@ -193,20 +183,22 @@ fn split_echo() -> Result<()> {
         }
     });
 
-    runtime.run().unwrap();
+    rx.take(count)
+        .forward(tx)
+        .map_err(|e| panic!(e))
+        .map(|_| ())
+        .await;
+
     thread.join().unwrap();
 
     Ok(())
 }
 
-#[test]
-fn split_send_all() -> Result<()> {
-    let address = generate_tcp_addres();
+#[tokio::test]
+async fn split_send_all() -> Result<()> {
+    let address = generate_tcp_address();
     let ctx = Context::new();
-    let (rx, mut tx) = dealer(&ctx).connect(&address)?.finish().split();
-    drop(rx);
-
-    let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+    let (_, mut tx) = dealer(&ctx).connect(&address)?.finish()?.split();
 
     let count = 10_000;
     let thread = spawn(move || {
@@ -227,12 +219,12 @@ fn split_send_all() -> Result<()> {
     });
 
     let mut count = futures::stream::iter((0..count).map(|i| {
-        Multipart::from(vec![
+        Ok(Multipart::from(vec![
             zmq::Message::from(&i.to_string()),
             zmq::Message::from(&(i + 1).to_string()),
-        ])
+        ]))
     }));
-    runtime.block_on(tx.send_all(&mut count))?;
+    tx.send_all(&mut count).await?;
 
     thread.join().unwrap();
 

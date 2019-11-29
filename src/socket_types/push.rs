@@ -19,10 +19,10 @@ pub struct PushBuilderBound {
 }
 
 impl PushBuilderBound {
-    pub fn finish(self) -> Push {
-        Push {
-            inner: Sender::new(ZmqPoller::from_zmq_socket(self.socket)),
-        }
+    pub fn finish(self) -> crate::Result<Push> {
+        Ok(Push {
+            inner: Sender::new(ZmqPoller::from_zmq_socket(self.socket)?),
+        })
     }
 }
 

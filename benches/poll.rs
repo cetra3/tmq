@@ -6,13 +6,16 @@ use criterion::Criterion;
 use futures::{SinkExt, StreamExt};
 use std::thread::spawn;
 use tmq::{pull, push, SocketExt};
-use tokio::runtime::current_thread::Runtime;
 use zmq::SocketType;
 
 fn poll_benchmark(c: &mut Criterion) {
     c.bench_function("receive", |b| {
         let address = "tcp://127.0.0.1:3011";
-        let mut runtime = Runtime::new().unwrap();
+        let mut runtime = tokio::runtime::Builder::new()
+            .basic_scheduler()
+            .enable_all()
+            .build()
+            .unwrap();
 
         let ctx = zmq::Context::new();
         let sender = ctx.socket(SocketType::PUSH).unwrap();
@@ -20,7 +23,7 @@ fn poll_benchmark(c: &mut Criterion) {
         sender.connect(address).unwrap();
 
         let ctx2 = zmq::Context::new();
-        let mut socket = pull(&ctx2).bind(address).unwrap().finish();
+        let mut socket = runtime.enter(|| pull(&ctx2).bind(address).unwrap().finish().unwrap());
 
         b.iter_with_setup(
             || {
@@ -39,7 +42,11 @@ fn poll_benchmark(c: &mut Criterion) {
 
     c.bench_function("send", |b| {
         let address = "tcp://127.0.0.1:3011";
-        let mut runtime = Runtime::new().unwrap();
+        let mut runtime = tokio::runtime::Builder::new()
+            .basic_scheduler()
+            .enable_all()
+            .build()
+            .unwrap();
 
         let thread = spawn(move || {
             let ctx = zmq::Context::new();
@@ -62,7 +69,7 @@ fn poll_benchmark(c: &mut Criterion) {
         });
 
         let ctx = zmq::Context::new();
-        let mut socket = push(&ctx).connect(address).unwrap().finish();
+        let mut socket = runtime.enter(|| push(&ctx).connect(address).unwrap().finish().unwrap());
         socket.set_linger(0).unwrap();
 
         let mut sent = 0;
