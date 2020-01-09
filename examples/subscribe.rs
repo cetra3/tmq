@@ -1,9 +1,9 @@
 use futures::StreamExt;
 
-use log::info;
+use tmq::{subscribe, Context, Result};
 
+use log::info;
 use std::env;
-use tmq::{pull, Context, Result};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -13,18 +13,17 @@ async fn main() -> Result<()> {
 
     pretty_env_logger::init();
 
-    let mut socket = pull(&Context::new())
-        .bind("tcp://127.0.0.1:7899")?
-        .finish()?;
+    let mut socket = subscribe(&Context::new())
+        .connect("tcp://127.0.0.1:7899")?
+        .subscribe(b"topic")?;
 
     while let Some(msg) = socket.next().await {
         info!(
-            "Pull: {:?}",
+            "Subscribe: {:?}",
             msg?.iter()
                 .map(|item| item.as_str().unwrap_or("invalid text"))
                 .collect::<Vec<&str>>()
         );
     }
-
     Ok(())
 }

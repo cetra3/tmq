@@ -3,10 +3,19 @@ use std::time::Duration;
 use futures::SinkExt;
 use tokio::time::delay_for;
 
-use tmq::{push, Context, Result, Multipart};
+use log::info;
+
+use std::env;
+use tmq::{push, Context, Multipart, Result};
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    if let Err(_) = env::var("RUST_LOG") {
+        env::set_var("RUST_LOG", "subscribe=DEBUG");
+    }
+
+    pretty_env_logger::init();
+
     let mut socket = push(&Context::new())
         .connect("tcp://127.0.0.1:3000")?
         .finish()?;
@@ -16,7 +25,7 @@ async fn main() -> Result<()> {
         let message = format!("Push #{}", i);
         i += 1;
 
-        println!("Push: {}", message);
+        info!("Push: {}", message);
         let multipart = Multipart::from(vec![zmq::Message::from(&message)]);
         socket.send(multipart).await?;
         delay_for(Duration::from_millis(1000)).await;

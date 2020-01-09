@@ -11,7 +11,7 @@ pub struct SubscribeBuilder<'a> {
 }
 
 impl<'a> SubscribeBuilder<'a> {
-    build_bind!(SUB, SubscribeBuilderBound);
+    build_connect!(SUB, SubscribeBuilderBound);
 }
 
 pub struct SubscribeBuilderBound {

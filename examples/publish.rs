@@ -25,7 +25,10 @@ async fn main() -> Result<()> {
         info!("Publish: {}", message);
 
         socket
-            .send(Multipart::from(vec![zmq::Message::from(&"topic"), zmq::Message::from(&message)]))
+            .send(Multipart::from(vec![
+                zmq::Message::from(&"topic"),
+                zmq::Message::from(&message),
+            ]))
             .await?;
         delay_for(Duration::from_secs(1)).await;
     }
