@@ -1,6 +1,6 @@
 use futures::StreamExt;
 
-use tmq::*;
+use tmq::{pull, Context, Result};
 
 #[tokio::main]
 async fn main() -> Result<()> {

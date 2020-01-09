@@ -1,8 +1,7 @@
-use std::time::Duration;
 use tmq::{subscribe, Result};
 use zmq::{Context, SocketType};
 
-use utils::{generate_tcp_address, send_multiparts, sync_send_multipart_repeated, check_receive_multiparts};
+use utils::{check_receive_multiparts, generate_tcp_address, sync_send_multipart_repeated};
 
 mod utils;
 
@@ -18,7 +17,7 @@ async fn receive_single_message() -> Result<()> {
     // hack to send long enough for the subscriber to receive something
     sync_send_multipart_repeated(address, SocketType::PUB, data.clone(), 10000);
 
-    check_receive_multiparts(sock, vec!(data)).await?;
+    check_receive_multiparts(sock, vec![data]).await?;
 
     Ok(())
 }

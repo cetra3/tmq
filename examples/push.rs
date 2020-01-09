@@ -3,7 +3,7 @@ use std::time::Duration;
 use futures::SinkExt;
 use tokio::time::delay_for;
 
-use tmq::*;
+use tmq::{push, Context, Result, Multipart};
 
 #[tokio::main]
 async fn main() -> Result<()> {
