@@ -162,13 +162,11 @@ async fn proxy() -> Result<()> {
         let msg = futures::future::select(frontend_fut, backend_fut).await;
         match msg {
             futures::future::Either::Left(router_msg) => {
-                println!("Proxy got client message");
                 dealer_tx.send(router_msg.0.unwrap()?).await?;
                 frontend_fut = router_rx.next();
                 backend_fut = router_msg.1;
             }
             futures::future::Either::Right(dealer_msg) => {
-                println!("Proxy got worker message");
                 router_tx.send(dealer_msg.0.unwrap()?).await?;
                 backend_fut = dealer_rx.next();
                 frontend_fut = dealer_msg.1;

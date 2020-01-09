@@ -7,6 +7,7 @@ use zmq::{Context, SocketType};
 
 use futures::StreamExt;
 use rand::Rng;
+use std::sync::{Arc, Barrier};
 use tmq::{Multipart, Result, TmqError};
 
 /// Synchronous send and receive functions running in a separate thread.
@@ -90,6 +91,36 @@ pub fn sync_receive_multipart_repeated<T: Into<zmq::Message> + Send + 'static>(
             );
         }
     })
+}
+pub fn sync_receive_subscribe<T: Into<zmq::Message> + Send + 'static>(
+    address: String,
+    topic: String,
+    expected: Vec<Vec<T>>,
+) -> (JoinHandle<()>, Arc<Barrier>) {
+    let barrier = Arc::new(Barrier::new(2));
+    let handle = barrier.clone();
+    (
+        spawn(move || {
+            let socket = Context::new().socket(zmq::SocketType::SUB).unwrap();
+            socket.connect(&address).unwrap();
+            socket.set_subscribe(topic.as_bytes()).unwrap();
+            handle.wait();
+
+            for item in expected.into_iter() {
+                let received: Multipart = socket
+                    .recv_multipart(0)
+                    .unwrap()
+                    .into_iter()
+                    .map(|i| i.into())
+                    .collect();
+                assert_eq!(
+                    item.into_iter().map(|i| i.into()).collect::<Multipart>(),
+                    received
+                );
+            }
+        }),
+        barrier,
+    )
 }
 pub fn sync_echo(address: String, socket_type: SocketType, count: u64) -> JoinHandle<()> {
     spawn(move || {
