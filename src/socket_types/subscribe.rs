@@ -1,7 +1,6 @@
 use zmq::{self, Context as ZmqContext};
 
-use crate::{poll::ZmqPoller, Receiver};
-
+use crate::{poll::ZmqPoller, Receiver, socket::AsZmqSocket};
 pub fn subscribe(context: &ZmqContext) -> SubscribeBuilder {
     SubscribeBuilder { context }
 }
@@ -32,3 +31,12 @@ pub struct Subscribe {
 }
 impl_wrapper!(Subscribe, Receiver, inner);
 impl_wrapper_stream!(Subscribe, inner);
+
+impl Subscribe {
+    /// Adds another topic to this subscriber.
+    /// This doesn't remove the previously added topics.
+    pub fn subscribe(&mut self, address: &[u8]) -> crate::Result<()> {
+        self.get_socket().set_subscribe(address)?;
+        Ok(())
+    }
+}
