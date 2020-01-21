@@ -5,14 +5,10 @@ use std::{
 };
 use zmq::Message;
 
-#[derive(Debug)]
+#[derive(Debug, Default, Eq)]
 pub struct Multipart(VecDeque<Message>);
 
 impl Multipart {
-    pub fn new() -> Self {
-        Default::default()
-    }
-
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
@@ -39,20 +35,27 @@ impl Multipart {
     }
 
     #[inline]
-    pub fn iter(&self) -> std::collections::vec_deque::Iter<Message> {
-        self.0.iter()
+    pub fn pop_back(&mut self) -> Option<Message> {
+        self.0.pop_back()
     }
-}
 
-impl Default for Multipart {
-    fn default() -> Self {
-        Self(VecDeque::default())
+    #[inline]
+    pub fn iter(&self) -> impl Iterator<Item=&Message> {
+        self.0.iter()
     }
 }
 
 impl From<Vec<Message>> for Multipart {
     fn from(item: Vec<Message>) -> Self {
         Self(item.into())
+    }
+}
+
+impl From<Message> for Multipart {
+    fn from(message: Message) -> Self {
+        let mut vec = VecDeque::with_capacity(1);
+        vec.push_back(message);
+        Self(vec)
     }
 }
 

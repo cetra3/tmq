@@ -37,7 +37,7 @@ impl ZmqPoller {
         if read_buffer.is_empty() {
             ready!(self.multipart_poll_read_ready(cx))?;
 
-            let mut buffer = Multipart::new();
+            let mut buffer = Multipart::default();
             loop {
                 let mut msg = zmq::Message::new();
                 match self.get_socket().recv(&mut msg, zmq::DONTWAIT) {
@@ -50,7 +50,7 @@ impl ZmqPoller {
                                 break Poll::Ready(Some(Ok(read_buffer.pop_front().unwrap())));
                             }
 
-                            buffer = Multipart::new();
+                            buffer = Multipart::default();
                         }
                     }
                     Err(zmq::Error::EAGAIN) => {
@@ -83,7 +83,7 @@ impl ZmqPoller {
     pub(crate) fn multipart_recv(&self, cx: &mut Context<'_>) -> Poll<Option<Result<Multipart>>> {
         ready!(self.multipart_poll_read_ready(cx))?;
 
-        let mut buffer = Multipart::new();
+        let mut buffer = Multipart::default();
         loop {
             let mut msg = zmq::Message::new();
             match self.get_socket().recv(&mut msg, zmq::DONTWAIT) {
