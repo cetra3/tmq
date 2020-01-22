@@ -69,11 +69,13 @@ pub trait SocketExt {
     fn is_curve_server(&self) -> Result<bool>;
     fn set_curve_server(&self, value: bool) -> Result<()>;
 
-    fn is_gssapi_server(&self) -> Result<bool>;
-    fn set_gssapi_server(&self, value: bool) -> Result<()>;
-
-    fn is_gssapi_plaintext(&self) -> Result<bool>;
-    fn set_gssapi_plaintext(&self, value: bool) -> Result<()>;
+    // JP: Comment out to allow this to compile on my system where these APIs are not defined.
+    // please don't check this in.
+    // fn is_gssapi_server(&self) -> Result<bool>;
+    // fn set_gssapi_server(&self, value: bool) -> Result<()>;
+    
+    // fn is_gssapi_plaintext(&self) -> Result<bool>;
+    // fn set_gssapi_plaintext(&self, value: bool) -> Result<()>;
 
     fn get_maxmsgsize(&self) -> Result<i64>;
     fn set_maxmsgsize(&self, value: i64) -> Result<()>;
@@ -155,11 +157,11 @@ impl<T: AsZmqSocket> SocketExt for T {
     getter!(is_curve_server, bool);
     setter!(set_curve_server, bool);
 
-    getter!(is_gssapi_server, bool);
-    setter!(set_gssapi_server, bool);
+    // getter!(is_gssapi_server, bool);
+    // setter!(set_gssapi_server, bool);
 
-    getter!(is_gssapi_plaintext, bool);
-    setter!(set_gssapi_plaintext, bool);
+    // getter!(is_gssapi_plaintext, bool);
+    // setter!(set_gssapi_plaintext, bool);
 
     getter!(get_maxmsgsize, i64);
     setter!(set_maxmsgsize, i64);
