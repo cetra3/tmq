@@ -15,7 +15,7 @@ tokio = { version = "0.2", features = ["io-driver"] }
 mio = "0.6"
 zmq = "0.9"
 log = "0.4"
-quick-error = "1.2"
+thiserror = "1"
 
 [dev-dependencies]
 tokio = { version = "0.2", features = ["full"] }

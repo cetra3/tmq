@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate quick_error;
-
 pub type Result<T> = std::result::Result<T, TmqError>;
 
 /// External re-exports
