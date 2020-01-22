@@ -4,6 +4,9 @@ use mio::{unix::EventedFd, Evented, Poll, PollOpt, Ready, Token};
 
 use crate::Result;
 
+/// Wrapper on top of a ZMQ socket.
+///
+/// The socket needs to be wrapped to allow various trait implementations.
 pub(crate) struct SocketWrapper {
     pub(crate) socket: zmq::Socket,
 }
@@ -38,10 +41,13 @@ impl Evented for SocketWrapper {
     }
 }
 
+/// Trait for various ZMQ socket wrappers.
 pub trait AsZmqSocket {
+    /// Return a reference to the inner ZMQ socket.
     fn get_socket(&self) -> &zmq::Socket;
 }
 
+/// Trait which defines configuration functions for ZMQ sockets.
 pub trait SocketExt {
     fn monitor(&self, monitor_endpoint: &str, events: i32) -> Result<()>;
 
@@ -111,14 +117,14 @@ pub trait SocketExt {
 
 macro_rules! getter {
     ($name: ident, $retval: ty) => {
-        fn $name(&self) -> Result<$retval> {
+        fn $name(&self) -> $crate::Result<$retval> {
             self.get_socket().$name().map_err(|e| e.into())
         }
     }
 }
 macro_rules! setter {
     ($name: ident, $type: ty) => {
-        fn $name(&self, value: $type) -> Result<()> {
+        fn $name(&self, value: $type) -> $crate::Result<()> {
             self.get_socket().$name(value).map_err(|e| e.into())
         }
     }

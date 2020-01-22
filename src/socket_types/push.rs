@@ -2,6 +2,7 @@ use zmq::{self, Context as ZmqContext};
 
 use crate::{comm::Sender, poll::ZmqPoller};
 
+/// Create a builder for a PUSH socket.
 pub fn push(context: &ZmqContext) -> PushBuilder {
     PushBuilder { context }
 }
@@ -26,6 +27,7 @@ impl PushBuilderBound {
     }
 }
 
+/// Asynchronous PUSH socket.
 pub struct Push {
     inner: Sender,
 }

@@ -3,7 +3,7 @@
 /// Implements common functions for a Socket wrapper.
 macro_rules! impl_wrapper {
     ($type: ty, $target: ty, $field: ident) => {
-        impl crate::socket::AsZmqSocket for $type {
+        impl $crate::socket::AsZmqSocket for $type {
             #[inline]
             fn get_socket(&self) -> &::zmq::Socket {
                 &self.$field.get_socket()
@@ -20,19 +20,19 @@ macro_rules! impl_wrapper {
 /// Implements `Sink<Multipart, Error=TmqError>` for a Socket wrapping an inner `Sender`.
 macro_rules! impl_wrapper_sink {
     ($type: ty, $field: ident) => {
-        impl<T: ::std::convert::Into<crate::Multipart>> ::futures::Sink<T> for $type {
-            type Error = crate::TmqError;
+        impl<T: ::std::convert::Into<$crate::Multipart>> ::futures::Sink<T> for $type {
+            type Error = $crate::TmqError;
 
             #[inline]
             fn poll_ready(
                 mut self: ::std::pin::Pin<&mut Self>,
                 cx: &mut ::std::task::Context<'_>,
-            ) -> ::std::task::Poll<crate::Result<()>> {
+            ) -> ::std::task::Poll<$crate::Result<()>> {
                 ::futures::Sink::<T>::poll_ready(::std::pin::Pin::new(&mut self.$field), cx)
             }
 
             #[inline]
-            fn start_send(mut self: ::std::pin::Pin<&mut Self>, item: T) -> crate::Result<()> {
+            fn start_send(mut self: ::std::pin::Pin<&mut Self>, item: T) -> $crate::Result<()> {
                 ::futures::Sink::<T>::start_send(::std::pin::Pin::new(&mut self.$field), item)
             }
 
@@ -40,7 +40,7 @@ macro_rules! impl_wrapper_sink {
             fn poll_flush(
                 mut self: ::std::pin::Pin<&mut Self>,
                 cx: &mut ::std::task::Context<'_>,
-            ) -> ::std::task::Poll<crate::Result<()>> {
+            ) -> ::std::task::Poll<$crate::Result<()>> {
                 ::futures::Sink::<T>::poll_flush(::std::pin::Pin::new(&mut self.$field), cx)
             }
 
@@ -48,7 +48,7 @@ macro_rules! impl_wrapper_sink {
             fn poll_close(
                 mut self: ::std::pin::Pin<&mut Self>,
                 cx: &mut ::std::task::Context<'_>,
-            ) -> ::std::task::Poll<crate::Result<()>> {
+            ) -> ::std::task::Poll<$crate::Result<()>> {
                 ::futures::Sink::<T>::poll_close(::std::pin::Pin::new(&mut self.$field), cx)
             }
         }
@@ -59,7 +59,7 @@ macro_rules! impl_wrapper_sink {
 macro_rules! impl_wrapper_stream {
     ($type: ty, $field: ident) => {
         impl ::futures::Stream for $type {
-            type Item = crate::Result<crate::Multipart>;
+            type Item = $crate::Result<$crate::Multipart>;
 
             #[inline]
             fn poll_next(
@@ -76,7 +76,7 @@ macro_rules! impl_wrapper_stream {
 /// field: identifier of a field containing a `ZmqPoller`.
 macro_rules! impl_as_socket {
     ($type: ty, $field: ident) => {
-        impl crate::socket::AsZmqSocket for $type {
+        impl $crate::socket::AsZmqSocket for $type {
             #[inline]
             fn get_socket(&self) -> &::zmq::Socket {
                 &self.$field.get_socket()
@@ -89,7 +89,7 @@ macro_rules! impl_as_socket {
 macro_rules! impl_split {
     ($type: ty, $field: ident) => {
         impl $type {
-            pub fn split(self) -> (crate::SharedReceiver, crate::SharedSender) {
+            pub fn split(self) -> ($crate::SharedReceiver, $crate::SharedSender) {
                 self.$field.split()
             }
         }
@@ -100,7 +100,7 @@ macro_rules! impl_split {
 macro_rules! impl_buffered {
     ($type: ty, $field: ident) => {
         impl $type {
-            pub fn buffered(self, capacity: usize) -> crate::BufferedReceiver {
+            pub fn buffered(self, capacity: usize) -> $crate::BufferedReceiver {
                 self.$field.buffered(capacity)
             }
         }
@@ -113,31 +113,31 @@ macro_rules! impl_buffered {
 /// $socket: identifier of a field containing a `ZmqPoller`
 macro_rules! impl_sink {
     ($type: ty, $buffer: ident, $socket: ident) => {
-        impl<T: ::std::convert::Into<crate::Multipart>> ::futures::Sink<T> for $type {
-            type Error = crate::TmqError;
+        impl<T: ::std::convert::Into<$crate::Multipart>> ::futures::Sink<T> for $type {
+            type Error = $crate::TmqError;
 
             fn poll_ready(
                 self: ::std::pin::Pin<&mut Self>,
                 cx: &mut ::std::task::Context<'_>,
-            ) -> ::std::task::Poll<crate::Result<()>> {
+            ) -> ::std::task::Poll<$crate::Result<()>> {
                 let Self {
                     ref $socket,
                     ref mut $buffer,
                 } = self.get_mut();
                 ::futures::ready!($socket.multipart_flush(cx, $buffer))?;
-                ::std::task::Poll::Ready(crate::Result::Ok(()))
+                ::std::task::Poll::Ready($crate::Result::Ok(()))
             }
 
-            fn start_send(mut self: ::std::pin::Pin<&mut Self>, item: T) -> crate::Result<()> {
+            fn start_send(mut self: ::std::pin::Pin<&mut Self>, item: T) -> $crate::Result<()> {
                 assert!(self.$buffer.is_empty());
                 self.$buffer = item.into();
-                crate::Result::Ok(())
+                $crate::Result::Ok(())
             }
 
             fn poll_flush(
                 self: ::std::pin::Pin<&mut Self>,
                 cx: &mut ::std::task::Context<'_>,
-            ) -> ::std::task::Poll<crate::Result<()>> {
+            ) -> ::std::task::Poll<$crate::Result<()>> {
                 let Self {
                     ref $socket,
                     ref mut $buffer,
@@ -148,7 +148,7 @@ macro_rules! impl_sink {
             fn poll_close(
                 self: ::std::pin::Pin<&mut Self>,
                 cx: &mut ::std::task::Context<'_>,
-            ) -> ::std::task::Poll<crate::Result<()>> {
+            ) -> ::std::task::Poll<$crate::Result<()>> {
                 ::futures::Sink::<T>::poll_flush(self, cx)
             }
         }
@@ -160,7 +160,7 @@ macro_rules! impl_sink {
 macro_rules! impl_stream {
     ($type: ty, $socket: ident) => {
         impl ::futures::Stream for $type {
-            type Item = crate::Result<crate::Multipart>;
+            type Item = $crate::Result<$crate::Multipart>;
 
             fn poll_next(
                 self: ::std::pin::Pin<&mut Self>,
@@ -178,7 +178,7 @@ macro_rules! impl_stream {
 macro_rules! impl_buffered_stream {
     ($type: ty, $buffer: ident, $socket: ident) => {
         impl ::futures::Stream for $type {
-            type Item = crate::Result<crate::Multipart>;
+            type Item = $crate::Result<$crate::Multipart>;
 
             fn poll_next(
                 self: ::std::pin::Pin<&mut Self>,
@@ -195,6 +195,7 @@ macro_rules! impl_buffered_stream {
 }
 
 /// Builder implementations
+
 /// Implements a connect builder method with the given $socket_type.
 /// The type on which the method is implemented should have a field `context` of type
 /// `&zmq::Context`.
@@ -203,11 +204,11 @@ macro_rules! impl_buffered_stream {
 /// type `zmq::Socket`.
 macro_rules! build_connect {
     ($socket_type: ident, $result_type: tt) => {
-        pub fn connect(self, endpoint: &str) -> crate::Result<$result_type> {
+        pub fn connect(self, endpoint: &str) -> $crate::Result<$result_type> {
             let socket = self.context.socket(::zmq::SocketType::$socket_type)?;
             socket.connect(endpoint)?;
 
-            crate::Result::Ok($result_type {
+            $crate::Result::Ok($result_type {
                 socket: socket.into(),
             })
         }
@@ -222,11 +223,11 @@ macro_rules! build_connect {
 /// type `zmq::Socket`.
 macro_rules! build_bind {
     ($socket_type: ident, $result_type: tt) => {
-        pub fn bind(self, endpoint: &str) -> crate::Result<$result_type> {
+        pub fn bind(self, endpoint: &str) -> $crate::Result<$result_type> {
             let socket = self.context.socket(::zmq::SocketType::$socket_type)?;
             socket.bind(endpoint)?;
 
-            crate::Result::Ok($result_type {
+            $crate::Result::Ok($result_type {
                 socket: socket.into(),
             })
         }

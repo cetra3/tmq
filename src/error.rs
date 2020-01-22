@@ -5,5 +5,5 @@ pub enum TmqError {
     #[error("Zmq error: {0}")]
     Zmq(#[from] zmq::Error),
     #[error("IO error: {0}")]
-    Io(#[from] std::io::Error)
+    Io(#[from] std::io::Error),
 }

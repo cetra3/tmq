@@ -2,6 +2,7 @@ use zmq::{self, Context as ZmqContext};
 
 use crate::{comm::SenderReceiver, poll::ZmqPoller};
 
+/// Create a builder for a DEALER socket.
 pub fn dealer(context: &ZmqContext) -> DealerBuilder {
     DealerBuilder { context }
 }
@@ -27,6 +28,7 @@ impl DealerBuilderBound {
     }
 }
 
+/// Asynchronous DEALER Socket.
 pub struct Dealer {
     inner: SenderReceiver,
 }

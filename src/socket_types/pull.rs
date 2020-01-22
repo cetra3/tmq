@@ -2,6 +2,7 @@ use zmq::{self, Context as ZmqContext};
 
 use crate::{comm::Receiver, poll::ZmqPoller};
 
+/// Create a builder for a PULL socket.
 pub fn pull(context: &ZmqContext) -> PullBuilder {
     PullBuilder { context }
 }
@@ -26,6 +27,7 @@ impl PullBuilderBound {
     }
 }
 
+/// Asynchronous PULL socket.
 pub struct Pull {
     inner: Receiver,
 }

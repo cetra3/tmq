@@ -7,6 +7,7 @@ use std::rc::Rc;
 type Poller = ZmqPoller;
 type PollerShared = Rc<Poller>;
 
+/// Sends multiparts using an owned Poller.
 pub struct Sender {
     pub(crate) poller: Poller,
     pub(crate) buffer: Multipart,
@@ -23,6 +24,7 @@ impl Sender {
     }
 }
 
+/// Receives multiparts using an owned Poller.
 pub struct Receiver {
     pub(crate) poller: Poller,
 }
@@ -38,6 +40,7 @@ impl Receiver {
     }
 }
 
+/// Receives buffered multiparts using an owned Poller.
 pub struct BufferedReceiver {
     pub(crate) poller: Poller,
     pub(crate) buffer: ReceiverBuffer,
@@ -54,6 +57,7 @@ impl BufferedReceiver {
     }
 }
 
+/// Sends ands receives multiparts using an owned Poller.
 pub struct SenderReceiver {
     pub(crate) poller: Poller,
     pub(crate) buffer: Multipart,
@@ -78,7 +82,7 @@ impl SenderReceiver {
     }
 }
 
-/// Wrappers that share a socket
+/// Sends multiparts using a shared Poller.
 pub struct SharedSender {
     pub(crate) poller: PollerShared,
     pub(crate) buffer: Multipart,
@@ -92,6 +96,7 @@ impl SharedSender {
     }
 }
 
+/// Receives multiparts using a shared Poller.
 pub struct SharedReceiver {
     pub(crate) poller: PollerShared,
 }
@@ -107,6 +112,7 @@ impl SharedReceiver {
     }
 }
 
+/// Receives buffered multiparts using a shared Poller.
 pub struct SharedBufferedReceiver {
     pub(crate) poller: PollerShared,
     pub(crate) buffer: ReceiverBuffer,

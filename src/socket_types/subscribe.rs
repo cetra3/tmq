@@ -1,6 +1,8 @@
 use zmq::{self, Context as ZmqContext};
 
-use crate::{poll::ZmqPoller, Receiver, socket::AsZmqSocket};
+use crate::{poll::ZmqPoller, socket::AsZmqSocket, Receiver};
+
+/// Create a builder for a SUB socket.
 pub fn subscribe(context: &ZmqContext) -> SubscribeBuilder {
     SubscribeBuilder { context }
 }
@@ -26,6 +28,7 @@ impl SubscribeBuilderBound {
     }
 }
 
+/// Asynchronous SUB socket.
 pub struct Subscribe {
     inner: Receiver,
 }

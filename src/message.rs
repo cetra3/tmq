@@ -5,42 +5,53 @@ use std::{
 };
 use zmq::Message;
 
+/// ZMQ multipart which holds individual messages.
+///
+/// It is implemented with a VecDeque to allow efficient popping from the beginning.
+/// This is useful both for async Read/Write implementations and for consuming the multipart.
 #[derive(Debug, Default, Eq)]
 pub struct Multipart(VecDeque<Message>);
 
 impl Multipart {
+    /// Returns `true` if the multipart contains no messages.
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 
+    /// Returns the number of messages in the multipart.
     #[inline]
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
+    /// Adds a message to the front of the multipart.
     #[inline]
     pub fn push_front(&mut self, item: Message) {
         self.0.push_front(item)
     }
 
+    /// Removes the first message from the multipart and returns it, or [`None`] if it is empty.
     #[inline]
     pub fn pop_front(&mut self) -> Option<Message> {
         self.0.pop_front()
     }
 
+    /// Adds a message to the back of the multipart.
     #[inline]
     pub fn push_back(&mut self, item: Message) {
         self.0.push_back(item)
     }
 
+    /// Removes the last message from the multipart and returns it, or [`None`] if it is empty.
     #[inline]
     pub fn pop_back(&mut self) -> Option<Message> {
         self.0.pop_back()
     }
 
+    /// Creates an iterator which iterates through the messages of this multipart.
     #[inline]
-    pub fn iter(&self) -> impl Iterator<Item=&Message> {
+    pub fn iter(&self) -> impl Iterator<Item = &Message> {
         self.0.iter()
     }
 }

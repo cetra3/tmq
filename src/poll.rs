@@ -5,19 +5,27 @@ use mio::Ready;
 use tokio::io::PollEvented;
 use zmq;
 
+use crate::socket::AsZmqSocket;
 use crate::{socket::SocketWrapper, Multipart, Result};
 use std::{collections::VecDeque, ops::Deref};
+use zmq::Socket;
 
-/// Wrapper on top of a ZeroMQ socket, implements functions for asynchronous reading and writing
-/// of multipart messages.
+/// Implements functions for asynchronous reading and writing of multipart messages.
+///
+/// Uses a wrapped ZMQ socket. It needs to use a distinct inner type because
+/// [`tokio::io::PollEvented`] requires a [`mio::Evented`] parameter.
 pub(crate) struct ZmqPoller(PollEvented<SocketWrapper>);
 
 impl ZmqPoller {
+    #[inline]
     pub(crate) fn from_zmq_socket(socket: zmq::Socket) -> Result<Self> {
         Ok(ZmqPoller(PollEvented::new(SocketWrapper::new(socket))?))
     }
+}
 
-    pub(crate) fn get_socket(&self) -> &zmq::Socket {
+impl AsZmqSocket for ZmqPoller {
+    #[inline]
+    fn get_socket(&self) -> &Socket {
         &self.0.get_ref().socket
     }
 }
@@ -188,6 +196,7 @@ impl Deref for ZmqPoller {
     }
 }
 
+/// Buffer used by receiver implementations to hold multiparts.
 pub(crate) struct ReceiverBuffer {
     capacity: usize,
     buffer: VecDeque<Multipart>,
@@ -200,17 +209,22 @@ impl ReceiverBuffer {
         Self { capacity, buffer }
     }
 
+    #[inline]
     pub(crate) fn is_empty(&self) -> bool {
         self.buffer.is_empty()
     }
 
+    #[inline]
     pub(crate) fn is_full(&self) -> bool {
         self.buffer.len() == self.capacity
     }
 
+    #[inline]
     pub(crate) fn pop_front(&mut self) -> Option<Multipart> {
         self.buffer.pop_front()
     }
+
+    #[inline]
     pub(crate) fn push_back(&mut self, item: Multipart) {
         self.buffer.push_back(item)
     }

@@ -2,6 +2,7 @@ use zmq::{self, Context as ZmqContext};
 
 use crate::{comm::SenderReceiver, poll::ZmqPoller, socket::AsZmqSocket, Result};
 
+/// Create a builder for a ROUTER socket.
 pub fn router(context: &ZmqContext) -> RouterBuilder {
     RouterBuilder { context }
 }
@@ -27,6 +28,7 @@ impl RouterBuilderBound {
     }
 }
 
+/// Asynchronous ROUTER socket.
 pub struct Router {
     inner: SenderReceiver,
 }

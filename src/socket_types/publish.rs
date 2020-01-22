@@ -2,6 +2,7 @@ use zmq::{self, Context as ZmqContext};
 
 use crate::{poll::ZmqPoller, Sender};
 
+/// Create a builder for a PUB socket.
 pub fn publish(context: &ZmqContext) -> PublishBuilder {
     PublishBuilder { context }
 }
@@ -26,6 +27,7 @@ impl PublishBuilderBound {
     }
 }
 
+/// Asynchronous PUB socket.
 pub struct Publish {
     inner: Sender,
 }
