@@ -32,7 +32,17 @@ async fn single_message() -> Result<()> {
     Ok(())
 }
 
-#[tokio::test]
+// Note that equivalent non-async code produces an error:
+//
+// ```
+// use zmq::{Context};
+// fn main() {
+//     let req = Context::new().socket(zmq::SocketType::REQ).unwrap();
+//     req.connect("tcp://127.0.0.1:7897").expect("connect");
+//     assert!(req.send("str",0).is_ok());
+//     assert!(req.send("str",0).is_err());
+// }
+// #[tokio::test] // disabled due to hang rather than error
 async fn send_2x_is_err() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
@@ -40,6 +50,27 @@ async fn send_2x_is_err() -> Result<()> {
 
     sock.send(vec![msg(b"Msg")]).await?;
     let res = sock.send(vec![msg(b"Msg")]).await;
+    assert!(res.is_err());
+
+    Ok(())
+}
+
+// Note that equivalent non-async code produces an error:
+//
+// ```
+// use zmq::{Context};
+// fn main() {
+//     let req = Context::new().socket(zmq::SocketType::REQ).unwrap();
+//     req.connect("tcp://127.0.0.1:7897").expect("connect");
+//     assert!(req.recv(0).is_err());
+// }
+// #[tokio::test] // disabled due to hang rather than error
+async fn recv_first_is_err() -> Result<()> {
+    let address = generate_tcp_address();
+    let ctx = Context::new();
+    let mut sock = request(&ctx).connect(&address)?.finish()?;
+
+    let res = sock.next().await.unwrap();
     assert!(res.is_err());
 
     Ok(())

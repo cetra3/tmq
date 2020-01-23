@@ -6,7 +6,7 @@ use tmq::{request, Context, Multipart, Result};
 #[tokio::main]
 async fn main() -> Result<()> {
     if env::var("RUST_LOG").is_err() {
-        env::set_var("RUST_LOG", "subscribe=DEBUG");
+        env::set_var("RUST_LOG", "request=DEBUG");
     }
 
     pretty_env_logger::init();
@@ -17,11 +17,11 @@ async fn main() -> Result<()> {
 
     let mut i = 0u32;
     loop {
-        let message = vec![zmq::Message::from(&format!("Req#{}", i))];
+        let message = format!("Req#{}", i);
         i += 1;
 
         info!("Request: {:?}", &message);
-        let multipart = Multipart::from(message);
+        let multipart = Multipart::from(vec![zmq::Message::from(message.as_bytes())]);
         socket.send(multipart).await?;
         let msg = socket.next().await.unwrap()?;
         info!(
