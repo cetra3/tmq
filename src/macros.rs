@@ -166,12 +166,14 @@ macro_rules! impl_stream {
                 self: ::std::pin::Pin<&mut Self>,
                 cx: &mut ::std::task::Context,
             ) -> ::std::task::Poll<::std::option::Option<Self::Item>> {
-                self.$socket.multipart_recv(cx)
+                match self.$socket.multipart_recv(cx) {
+                    ::std::task::Poll::Ready(value) => ::std::task::Poll::Ready(::std::option::Option::Some(value)),
+                    _ => ::std::task::Poll::Pending
+                }
             }
         }
     };
 }
-
 /// Implements a buffered `Stream<Item=Result<Multipart>>` for the given type.
 /// $buffer: identifier of a field containing a `ReceiveBuffer`
 /// $socket: identifier of a field containing a `ZmqPoller`
@@ -188,7 +190,10 @@ macro_rules! impl_buffered_stream {
                     ref $socket,
                     ref mut $buffer,
                 } = self.get_mut();
-                $socket.multipart_recv_buffered(cx, $buffer)
+                match $socket.multipart_recv_buffered(cx, $buffer) {
+                    ::std::task::Poll::Ready(value) => ::std::task::Poll::Ready(::std::option::Option::Some(value)),
+                    _ => ::std::task::Poll::Pending
+                }
             }
         }
     };

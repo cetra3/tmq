@@ -41,7 +41,7 @@ impl ZmqPoller {
         &self,
         cx: &mut Context<'_>,
         read_buffer: &mut ReceiverBuffer,
-    ) -> Poll<Option<Result<Multipart>>> {
+    ) -> Poll<Result<Multipart>> {
         if read_buffer.is_empty() {
             ready!(self.multipart_poll_read_ready(cx))?;
 
@@ -55,7 +55,7 @@ impl ZmqPoller {
                         if !more {
                             read_buffer.push_back(buffer);
                             if read_buffer.is_full() {
-                                break Poll::Ready(Some(Ok(read_buffer.pop_front().unwrap())));
+                                break Poll::Ready(Ok(read_buffer.pop_front().unwrap()));
                             }
 
                             buffer = Multipart::default();
@@ -70,14 +70,14 @@ impl ZmqPoller {
                         if read_buffer.is_empty() {
                             break Poll::Pending;
                         } else {
-                            break Poll::Ready(Some(Ok(read_buffer.pop_front().unwrap())));
+                            break Poll::Ready(Ok(read_buffer.pop_front().unwrap()));
                         }
                     }
-                    Err(e) => break Poll::Ready(Some(Err(e.into()))),
+                    Err(e) => break Poll::Ready(Err(e.into())),
                 }
             }
         } else {
-            Poll::Ready(Some(Ok(read_buffer.pop_front().unwrap())))
+            Poll::Ready(Ok(read_buffer.pop_front().unwrap()))
         }
     }
 
@@ -88,7 +88,7 @@ impl ZmqPoller {
     /// has been received, all the others are already available as well).
     ///
     /// If nothing was received, the read flag is cleared.
-    pub(crate) fn multipart_recv(&self, cx: &mut Context<'_>) -> Poll<Option<Result<Multipart>>> {
+    pub(crate) fn multipart_recv(&self, cx: &mut Context<'_>) -> Poll<Result<Multipart>> {
         ready!(self.multipart_poll_read_ready(cx))?;
 
         let mut buffer = Multipart::default();
@@ -108,12 +108,12 @@ impl ZmqPoller {
                     self.clear_read_ready(cx, Ready::readable())?;
                     return Poll::Pending;
                 }
-                Err(e) => return Poll::Ready(Some(Err(e.into()))),
+                Err(e) => return Poll::Ready(Err(e.into())),
             }
         }
 
         assert!(!buffer.is_empty());
-        Poll::Ready(Some(Ok(buffer)))
+        Poll::Ready(Ok(buffer))
     }
 
     /// Attempt to send a multipart message.
