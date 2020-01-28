@@ -1,4 +1,3 @@
-use futures::{SinkExt, StreamExt};
 use log::info;
 use std::env;
 use tmq::{request, Context, Multipart, Result};
@@ -11,7 +10,7 @@ async fn main() -> Result<()> {
 
     pretty_env_logger::init();
 
-    let mut socket = request(&Context::new())
+    let mut send_sock = request(&Context::new())
         .connect("tcp://127.0.0.1:7897")?
         .finish()?;
 
@@ -21,9 +20,10 @@ async fn main() -> Result<()> {
         i += 1;
 
         info!("Request: {:?}", &message);
-        let multipart = Multipart::from(vec![zmq::Message::from(message.as_bytes())]);
-        socket.send(multipart).await?;
-        let msg = socket.next().await.unwrap()?;
+        let mut multipart = Multipart::from(vec![zmq::Message::from(message.as_bytes())]);
+        let recv_sock = send_sock.send(&mut multipart).await?;
+        let (msg,send) = recv_sock.recv().await?;
+        send_sock = send;
         info!(
             "Reply: {:?}",
             msg.iter()
