@@ -44,7 +44,7 @@ impl crate::socket::AsZmqSocket for RequestSender {
 }
 
 impl RequestSender {
-    pub fn send(self, msg: &mut Multipart) -> RequestSend {
+    pub fn send(self, msg: Multipart) -> RequestSend {
         RequestSend {
             poller: Some(self.poller),
             msg,
@@ -96,9 +96,9 @@ impl RequestReceiver {
     }
 }
 
-pub struct RequestSend<'msg> {
+pub struct RequestSend {
     poller: Option<ZmqPoller>,
-    msg: &'msg mut Multipart,
+    msg: Multipart,
 }
 
 #[derive(Error)]
@@ -120,7 +120,7 @@ impl std::convert::From<SendError> for TmqError {
     }
 }
 
-impl<'msg> Future for RequestSend<'msg> {
+impl Future for RequestSend {
     type Output = std::result::Result<RequestReceiver, SendError>;
     fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
         let Self {

@@ -15,13 +15,14 @@ async fn main() -> Result<()> {
         .finish()?;
 
     loop {
-        let (mut multipart, send_sock) = recv_sock.recv().await?;
+        let (multipart, send_sock) = recv_sock.recv().await?;
         info!(
             "Request: {:?}",
-            multipart.iter()
+            multipart
+                .iter()
                 .map(|item| item.as_str().unwrap_or("invalid text"))
                 .collect::<Vec<&str>>()
         );
-        recv_sock = send_sock.send(&mut multipart).await?;
+        recv_sock = send_sock.send(multipart).await?;
     }
 }
