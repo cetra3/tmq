@@ -1,9 +1,5 @@
 use crate::TmqError;
 use crate::{poll::ZmqPoller, Multipart};
-use futures::ready;
-use std::future::Future;
-use std::pin::Pin;
-use std::task::{Context, Poll};
 use thiserror::Error;
 use zmq::{self, Context as ZmqContext};
 
@@ -44,10 +40,12 @@ impl crate::socket::AsZmqSocket for RequestSender {
 }
 
 impl RequestSender {
-    pub fn send(self, msg: Multipart) -> RequestSend {
-        RequestSend {
-            poller: Some(self.poller),
-            msg,
+    pub async fn send(self, mut msg: Multipart) -> std::result::Result<RequestReceiver, SendError> {
+        match futures::future::poll_fn(|cx| self.poller.multipart_flush(cx, &mut msg)).await {
+            Ok(()) => Ok(RequestReceiver {
+                poller: self.poller,
+            }),
+            Err(err) => Err(SendError { err, req: self }),
         }
     }
 }
@@ -89,16 +87,17 @@ impl crate::socket::AsZmqSocket for RequestReceiver {
 }
 
 impl RequestReceiver {
-    pub fn recv(self) -> RequestRecv {
-        RequestRecv {
-            poller: Some(self.poller),
+    pub async fn recv(self) -> std::result::Result<(Multipart, RequestSender), ReceiveError> {
+        match futures::future::poll_fn(|cx| self.poller.multipart_recv(cx)).await {
+            Ok(msg) => Ok((
+                msg,
+                RequestSender {
+                    poller: self.poller,
+                },
+            )),
+            Err(err) => Err(ReceiveError { err, recv: self }),
         }
     }
-}
-
-pub struct RequestSend {
-    poller: Option<ZmqPoller>,
-    msg: Multipart,
 }
 
 #[derive(Error)]
@@ -117,55 +116,6 @@ impl std::fmt::Debug for SendError {
 impl std::convert::From<SendError> for TmqError {
     fn from(r: SendError) -> TmqError {
         r.err
-    }
-}
-
-impl Future for RequestSend {
-    type Output = std::result::Result<RequestReceiver, SendError>;
-    fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
-        let Self {
-            ref mut poller,
-            ref mut msg,
-        } = self.get_mut();
-        match ready!(poller.as_ref().unwrap().multipart_flush(cx, msg)) {
-            Err(err) => Poll::Ready(Err(SendError {
-                err,
-                req: RequestSender {
-                    poller: poller.take().unwrap(),
-                },
-            })),
-            Ok(()) => Poll::Ready(Ok(RequestReceiver {
-                poller: poller.take().unwrap(),
-            })),
-        }
-    }
-}
-
-pub struct RequestRecv {
-    poller: Option<ZmqPoller>,
-}
-
-impl Future for RequestRecv {
-    type Output = std::result::Result<(Multipart, RequestSender), ReceiveError>;
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
-        let Self { ref mut poller } = self.get_mut();
-        // .unwrap() looks ok because I think the Option<Result<>> is rendudant
-        // and the Option<> part is always Some()
-        match ready!(poller.as_ref().unwrap().multipart_recv(cx)) {
-            Ok(msg) => Poll::Ready(Ok((
-                msg,
-                RequestSender {
-                    poller: poller.take().unwrap(),
-                },
-            ))),
-            Err(err) => Poll::Ready(Err(ReceiveError {
-                err,
-                recv: RequestReceiver {
-                    poller: poller.take().unwrap(),
-                },
-            })),
-        }
     }
 }
 

@@ -20,7 +20,7 @@ async fn main() -> Result<()> {
         i += 1;
 
         info!("Request: {:?}", &message);
-        let multipart = Multipart::from(vec![zmq::Message::from(message.as_bytes())]);
+        let multipart = Multipart::from(zmq::Message::from(message.as_bytes()));
         let recv_sock = send_sock.send(multipart).await?;
         let (msg, send) = recv_sock.recv().await?;
         send_sock = send;
