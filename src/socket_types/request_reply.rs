@@ -1,6 +1,4 @@
-use crate::TmqError;
 use crate::{poll::ZmqPoller, Multipart};
-use thiserror::Error;
 use zmq::{self, Context as ZmqContext};
 
 pub fn request(context: &ZmqContext) -> ReqBuilder {
@@ -40,13 +38,11 @@ impl crate::socket::AsZmqSocket for RequestSender {
 }
 
 impl RequestSender {
-    pub async fn send(self, mut msg: Multipart) -> std::result::Result<RequestReceiver, SendError> {
-        match futures::future::poll_fn(|cx| self.poller.multipart_flush(cx, &mut msg)).await {
-            Ok(()) => Ok(RequestReceiver {
-                poller: self.poller,
-            }),
-            Err(err) => Err(SendError { err, req: self }),
-        }
+    pub async fn send(self, mut msg: Multipart) -> crate::Result<RequestReceiver> {
+        futures::future::poll_fn(|cx| self.poller.multipart_flush(cx, &mut msg)).await?;
+        Ok(RequestReceiver {
+            poller: self.poller,
+        })
     }
 }
 
@@ -87,53 +83,13 @@ impl crate::socket::AsZmqSocket for RequestReceiver {
 }
 
 impl RequestReceiver {
-    pub async fn recv(self) -> std::result::Result<(Multipart, RequestSender), ReceiveError> {
-        match futures::future::poll_fn(|cx| self.poller.multipart_recv(cx)).await {
-            Ok(msg) => Ok((
-                msg,
-                RequestSender {
-                    poller: self.poller,
-                },
-            )),
-            Err(err) => Err(ReceiveError { err, recv: self }),
-        }
-    }
-}
-
-#[derive(Error)]
-#[error("{err}")]
-pub struct SendError {
-    err: TmqError,
-    req: RequestSender,
-}
-
-impl std::fmt::Debug for SendError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.err.fmt(f)
-    }
-}
-
-impl std::convert::From<SendError> for TmqError {
-    fn from(r: SendError) -> TmqError {
-        r.err
-    }
-}
-
-#[derive(Error)]
-#[error("{err}")]
-pub struct ReceiveError {
-    err: TmqError,
-    recv: RequestReceiver,
-}
-
-impl std::fmt::Debug for ReceiveError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.err.fmt(f)
-    }
-}
-
-impl std::convert::From<ReceiveError> for TmqError {
-    fn from(r: ReceiveError) -> TmqError {
-        r.err
+    pub async fn recv(self) -> crate::Result<(Multipart, RequestSender)> {
+        let msg = futures::future::poll_fn(|cx| self.poller.multipart_recv(cx)).await?;
+        Ok((
+            msg,
+            RequestSender {
+                poller: self.poller,
+            },
+        ))
     }
 }
