@@ -17,8 +17,8 @@ async fn single_message() -> Result<()> {
 
     let m1 = "Msg";
     let m2 = "Msg (contd.)";
-    let mut message = Multipart::from(vec![msg(m1.as_bytes()), msg(m2.as_bytes())]);
-    let reply_receiver = requester.send(&mut message).await?;
+    let message = Multipart::from(vec![msg(m1.as_bytes()), msg(m2.as_bytes())]);
+    let reply_receiver = requester.send(message).await?;
     if let Ok((multipart,_)) = reply_receiver.recv().await {
         let expected: Multipart = vec![msg(m1.as_bytes()), msg(m2.as_bytes())].into();
         assert_eq!(expected, multipart);
@@ -44,8 +44,8 @@ async fn request_hammer() -> Result<()> {
     for i in 0..count {
         let m1 = format!("Msg #{}", i);
         let m2 = format!("Msg #{} (contd.)", i);
-        let mut message = Multipart::from(vec![msg(m1.as_bytes()), msg(m2.as_bytes())]);
-        let reply_sock = req_sock.send(&mut message).await?;
+        let message = Multipart::from(vec![msg(m1.as_bytes()), msg(m2.as_bytes())]);
+        let reply_sock = req_sock.send(message).await?;
         let (multipart, req) = reply_sock.recv().await?;
         req_sock = req;
         let expected: Multipart = vec![msg(m1.as_bytes()), msg(m2.as_bytes())].into();

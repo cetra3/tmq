@@ -14,10 +14,10 @@ async fn single_message() -> Result<()> {
     let part2 = "single_message";
     let echo = sync_requester(address, 1, part2);
 
-    let (mut multipart,send_sock) = recv_sock.recv().await?;
+    let (multipart,send_sock) = recv_sock.recv().await?;
     assert_eq!(multipart.len(), 2);
     assert_eq!(multipart[1].as_str().unwrap(), part2);
-    send_sock.send(&mut multipart).await?;
+    send_sock.send(multipart).await?;
 
     echo.join().unwrap();
 
@@ -37,10 +37,10 @@ async fn hammer_reply() -> Result<()> {
     let echo = sync_requester(address, count, part2);
 
     for _ in 0..count {
-        let (mut multipart,send_sock) = recv_sock.recv().await?;
+        let (multipart,send_sock) = recv_sock.recv().await?;
         assert_eq!(multipart.len(), 2);
         assert_eq!(multipart[1].as_str().unwrap(), part2);
-        recv_sock = send_sock.send(&mut multipart).await?;
+        recv_sock = send_sock.send(multipart).await?;
     }
 
     echo.join().unwrap();
