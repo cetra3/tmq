@@ -4,17 +4,10 @@ use crate::{comm::SenderReceiver, poll::ZmqPoller, socket::AsZmqSocket, Result};
 
 /// Create a builder for a ROUTER socket.
 pub fn router(context: &ZmqContext) -> RouterBuilder {
-    RouterBuilder { context }
+    RouterBuilder::new(context)
 }
 
-pub struct RouterBuilder<'a> {
-    context: &'a ZmqContext,
-}
-
-impl<'a> RouterBuilder<'a> {
-    build_bind!(ROUTER, RouterBuilderBound);
-    build_connect!(ROUTER, RouterBuilderBound);
-}
+impl_builder!(ROUTER, RouterBuilder, RouterBuilderBound);
 
 pub struct RouterBuilderBound {
     socket: zmq::Socket,

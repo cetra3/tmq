@@ -167,8 +167,10 @@ macro_rules! impl_stream {
                 cx: &mut ::std::task::Context,
             ) -> ::std::task::Poll<::std::option::Option<Self::Item>> {
                 match self.$socket.multipart_recv(cx) {
-                    ::std::task::Poll::Ready(value) => ::std::task::Poll::Ready(::std::option::Option::Some(value)),
-                    _ => ::std::task::Poll::Pending
+                    ::std::task::Poll::Ready(value) => {
+                        ::std::task::Poll::Ready(::std::option::Option::Some(value))
+                    }
+                    _ => ::std::task::Poll::Pending,
                 }
             }
         }
@@ -191,8 +193,10 @@ macro_rules! impl_buffered_stream {
                     ref mut $buffer,
                 } = self.get_mut();
                 match $socket.multipart_recv_buffered(cx, $buffer) {
-                    ::std::task::Poll::Ready(value) => ::std::task::Poll::Ready(::std::option::Option::Some(value)),
-                    _ => ::std::task::Poll::Pending
+                    ::std::task::Poll::Ready(value) => {
+                        ::std::task::Poll::Ready(::std::option::Option::Some(value))
+                    }
+                    _ => ::std::task::Poll::Pending,
                 }
             }
         }
@@ -201,40 +205,35 @@ macro_rules! impl_buffered_stream {
 
 /// Builder implementations
 
-/// Implements a connect builder method with the given $socket_type.
-/// The type on which the method is implemented should have a field `context` of type
-/// `&zmq::Context`.
-///
-/// Returns a `Result<$result_type>`. The result type should have a single field `socket` of
-/// type `zmq::Socket`.
-macro_rules! build_connect {
-    ($socket_type: ident, $result_type: tt) => {
-        pub fn connect(self, endpoint: &str) -> $crate::Result<$result_type> {
-            let socket = self.context.socket(::zmq::SocketType::$socket_type)?;
-            socket.connect(endpoint)?;
-
-            $crate::Result::Ok($result_type {
-                socket: socket.into(),
-            })
+/// Creates a builder structure named $builder with methods to bind and connect using the given $socket_type.
+/// The $result_type must have a constructor accepting a single field called `socket` of type [`zmq::Socket`].
+macro_rules! impl_builder {
+    ($socket_type: ident, $builder: ident, $result_type: tt) => {
+        pub struct $builder<'a> {
+            context: &'a ::zmq::Context,
         }
-    }
-}
 
-/// Implements a bind builder method with the given $socket_type.
-/// The type on which the method is implemented should have a field `context` of type
-/// `&zmq::Context`.
-///
-/// Returns a `Result<$result_type>`. The result type should have a single field `socket` of
-/// type `zmq::Socket`.
-macro_rules! build_bind {
-    ($socket_type: ident, $result_type: tt) => {
-        pub fn bind(self, endpoint: &str) -> $crate::Result<$result_type> {
-            let socket = self.context.socket(::zmq::SocketType::$socket_type)?;
-            socket.bind(endpoint)?;
+        impl<'a> $builder<'a> {
+            fn new(context: &'a ::zmq::Context) -> Self {
+                Self { context }
+            }
 
-            $crate::Result::Ok($result_type {
-                socket: socket.into(),
-            })
+            pub fn connect(self, endpoint: &str) -> $crate::Result<$result_type> {
+                let socket = self.context.socket(::zmq::SocketType::$socket_type)?;
+                socket.connect(endpoint)?;
+
+                $crate::Result::Ok($result_type {
+                    socket: socket.into(),
+                })
+            }
+            pub fn bind(self, endpoint: &str) -> $crate::Result<$result_type> {
+                let socket = self.context.socket(::zmq::SocketType::$socket_type)?;
+                socket.bind(endpoint)?;
+
+                $crate::Result::Ok($result_type {
+                    socket: socket.into(),
+                })
+            }
         }
-    }
+    };
 }

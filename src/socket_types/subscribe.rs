@@ -4,16 +4,10 @@ use crate::{poll::ZmqPoller, socket::AsZmqSocket, Receiver};
 
 /// Create a builder for a SUB socket.
 pub fn subscribe(context: &ZmqContext) -> SubscribeBuilder {
-    SubscribeBuilder { context }
+    SubscribeBuilder::new(context)
 }
 
-pub struct SubscribeBuilder<'a> {
-    context: &'a ZmqContext,
-}
-
-impl<'a> SubscribeBuilder<'a> {
-    build_connect!(SUB, SubscribeBuilderBound);
-}
+impl_builder!(SUB, SubscribeBuilder, SubscribeBuilderBound);
 
 pub struct SubscribeBuilderBound {
     socket: zmq::Socket,

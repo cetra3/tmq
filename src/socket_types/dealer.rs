@@ -4,17 +4,10 @@ use crate::{comm::SenderReceiver, poll::ZmqPoller};
 
 /// Create a builder for a DEALER socket.
 pub fn dealer(context: &ZmqContext) -> DealerBuilder {
-    DealerBuilder { context }
+    DealerBuilder::new(context)
 }
 
-pub struct DealerBuilder<'a> {
-    context: &'a ZmqContext,
-}
-
-impl<'a> DealerBuilder<'a> {
-    build_connect!(DEALER, DealerBuilderBound);
-    build_bind!(DEALER, DealerBuilderBound);
-}
+impl_builder!(DEALER, DealerBuilder, DealerBuilderBound);
 
 pub struct DealerBuilderBound {
     socket: zmq::Socket,

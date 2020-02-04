@@ -4,16 +4,10 @@ use crate::{poll::ZmqPoller, Sender};
 
 /// Create a builder for a PUB socket.
 pub fn publish(context: &ZmqContext) -> PublishBuilder {
-    PublishBuilder { context }
+    PublishBuilder::new(context)
 }
 
-pub struct PublishBuilder<'a> {
-    context: &'a ZmqContext,
-}
-
-impl<'a> PublishBuilder<'a> {
-    build_bind!(PUB, PublishBuilderBound);
-}
+impl_builder!(PUB, PublishBuilder, PublishBuilderBound);
 
 pub struct PublishBuilderBound {
     socket: zmq::Socket,

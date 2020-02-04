@@ -4,16 +4,10 @@ use crate::{comm::Receiver, poll::ZmqPoller};
 
 /// Create a builder for a PULL socket.
 pub fn pull(context: &ZmqContext) -> PullBuilder {
-    PullBuilder { context }
+    PullBuilder::new(context)
 }
 
-pub struct PullBuilder<'a> {
-    context: &'a ZmqContext,
-}
-
-impl<'a> PullBuilder<'a> {
-    build_bind!(PULL, PullBuilderBound);
-}
+impl_builder!(PULL, PullBuilder, PullBuilderBound);
 
 pub struct PullBuilderBound {
     socket: zmq::Socket,
