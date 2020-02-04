@@ -1,24 +1,18 @@
 use crate::{poll::ZmqPoller, Multipart};
 use zmq::{self, Context as ZmqContext};
 
-pub fn request(context: &ZmqContext) -> ReqBuilder {
-    ReqBuilder { context }
+/// Create a builder for a Request socket
+pub fn request(context: &ZmqContext) -> RequestBuilder {
+    RequestBuilder::new(context)
 }
 
-pub struct ReqBuilder<'a> {
-    context: &'a ZmqContext,
-}
+impl_builder!(REQ, RequestBuilder, RequestBuilderBound);
 
-impl<'a> ReqBuilder<'a> {
-    build_connect!(REQ, ReqBuilderBound);
-    build_bind!(REQ, ReqBuilderBound);
-}
-
-pub struct ReqBuilderBound {
+pub struct RequestBuilderBound {
     socket: zmq::Socket,
 }
 
-impl ReqBuilderBound {
+impl RequestBuilderBound {
     pub fn finish(self) -> crate::Result<RequestSender> {
         Ok(RequestSender {
             poller: ZmqPoller::from_zmq_socket(self.socket)?,
@@ -46,24 +40,17 @@ impl RequestSender {
     }
 }
 
-pub fn reply(context: &ZmqContext) -> RepBuilder {
-    RepBuilder { context }
+pub fn reply(context: &ZmqContext) -> ReplyBuilder {
+    ReplyBuilder::new(context)
 }
 
-pub struct RepBuilder<'a> {
-    context: &'a ZmqContext,
-}
+impl_builder!(REP, ReplyBuilder, ReplyBuilderBound);
 
-impl<'a> RepBuilder<'a> {
-    build_connect!(REP, RepBuilderBound);
-    build_bind!(REP, RepBuilderBound);
-}
-
-pub struct RepBuilderBound {
+pub struct ReplyBuilderBound {
     socket: zmq::Socket,
 }
 
-impl RepBuilderBound {
+impl ReplyBuilderBound {
     pub fn finish(self) -> crate::Result<RequestReceiver> {
         Ok(RequestReceiver {
             poller: ZmqPoller::from_zmq_socket(self.socket)?,
