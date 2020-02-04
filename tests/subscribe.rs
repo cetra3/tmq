@@ -19,6 +19,10 @@ async fn receive_single_message() -> Result<()> {
     let pub_sock = Context::new().socket(SocketType::PUB).unwrap();
     pub_sock.bind(&address).unwrap();
 
+    // Subscribe sockets don't know when they're connected by zmq design.
+    // Sometimes there's a small delay, which can make this test unstable.
+    // To work around it, try up to 5 times with a short timeout.
+
     for _ in 0usize..5 {
         pub_sock.send_multipart(&data, 0).unwrap();
         if let Ok(Some(Ok(incoming))) = timeout(Duration::from_millis(100), sub_sock.next()).await {
