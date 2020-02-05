@@ -9,13 +9,15 @@ pub fn subscribe(context: &ZmqContext) -> SubscribeBuilder {
 
 impl_builder!(SUB, SubscribeBuilder, SubscribeBuilderBound);
 
+/// SUB socket which is already bound or connected.
 pub struct SubscribeBuilderBound {
     socket: zmq::Socket,
 }
 
 impl SubscribeBuilderBound {
-    pub fn subscribe(self, address: &[u8]) -> crate::Result<Subscribe> {
-        self.socket.set_subscribe(address)?;
+    /// Finishes creating the SUB socket by subscribing to the given topic.
+    pub fn subscribe(self, topic: &[u8]) -> crate::Result<Subscribe> {
+        self.socket.set_subscribe(topic)?;
         Ok(Subscribe {
             inner: Receiver::new(ZmqPoller::from_zmq_socket(self.socket)?),
         })
@@ -32,8 +34,8 @@ impl_wrapper_stream!(Subscribe, inner);
 impl Subscribe {
     /// Adds another topic to this subscriber.
     /// This doesn't remove the previously added topics.
-    pub fn subscribe(&mut self, address: &[u8]) -> crate::Result<()> {
-        self.get_socket().set_subscribe(address)?;
+    pub fn subscribe(&mut self, topic: &[u8]) -> crate::Result<()> {
+        self.get_socket().set_subscribe(topic)?;
         Ok(())
     }
 }

@@ -1,10 +1,10 @@
-mod dealer;
-mod publish;
-mod pull;
-mod push;
-mod router;
-mod subscribe;
-mod request_reply;
+pub mod dealer;
+pub mod publish;
+pub mod pull;
+pub mod push;
+pub mod router;
+pub mod subscribe;
+pub mod request_reply;
 
 pub use dealer::dealer;
 pub use publish::publish;

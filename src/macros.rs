@@ -10,6 +10,8 @@ macro_rules! impl_wrapper {
             }
         }
         impl $type {
+            #[doc(hidden)]
+            #[inline]
             pub fn into_inner(self) -> $target {
                 self.$field
             }
@@ -89,6 +91,7 @@ macro_rules! impl_as_socket {
 macro_rules! impl_split {
     ($type: ty, $field: ident) => {
         impl $type {
+            #[inline]
             pub fn split(self) -> ($crate::SharedReceiver, $crate::SharedSender) {
                 self.$field.split()
             }
@@ -209,15 +212,19 @@ macro_rules! impl_buffered_stream {
 /// The $result_type must have a constructor accepting a single field called `socket` of type [`zmq::Socket`].
 macro_rules! impl_builder {
     ($socket_type: ident, $builder: ident, $result_type: tt) => {
+        /// Builder which provides [`bind`](#method.bind) and [`connect`](#method.connect) methods to prepare a ZMQ socket for creation.
         pub struct $builder<'a> {
+            #[doc(hidden)]
             context: &'a ::zmq::Context,
         }
 
         impl<'a> $builder<'a> {
+            #[doc(hidden)]
             fn new(context: &'a ::zmq::Context) -> Self {
                 Self { context }
             }
 
+            /// Connect to a ZMQ endpoint at the given address.
             pub fn connect(self, endpoint: &str) -> $crate::Result<$result_type> {
                 let socket = self.context.socket(::zmq::SocketType::$socket_type)?;
                 socket.connect(endpoint)?;
@@ -226,6 +233,7 @@ macro_rules! impl_builder {
                     socket: socket.into(),
                 })
             }
+            /// Bind to a ZMQ endpoint at the given address.
             pub fn bind(self, endpoint: &str) -> $crate::Result<$result_type> {
                 let socket = self.context.socket(::zmq::SocketType::$socket_type)?;
                 socket.bind(endpoint)?;

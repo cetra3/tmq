@@ -40,6 +40,7 @@ impl RequestSender {
     }
 }
 
+/// Create a builder for a Reply socket
 pub fn reply(context: &ZmqContext) -> ReplyBuilder {
     ReplyBuilder::new(context)
 }
