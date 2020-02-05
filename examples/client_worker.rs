@@ -20,7 +20,7 @@ use tmq::{dealer, router, Context, Multipart};
 use tokio::time::delay_for;
 
 async fn client(ctx: Rc<Context>, client_id: u64, frontend: String) -> tmq::Result<()> {
-    let mut sock = dealer(&ctx).connect(&frontend)?.finish()?;
+    let mut sock = dealer(&ctx).connect(&frontend)?;
     let mut rng = rand::thread_rng();
 
     let client_id = client_id.to_string();
@@ -51,7 +51,7 @@ async fn client(ctx: Rc<Context>, client_id: u64, frontend: String) -> tmq::Resu
     }
 }
 async fn worker(ctx: Rc<Context>, worker_id: u64, backend: String) -> Result<(), Box<dyn Error>> {
-    let mut sock = dealer(&ctx).connect(&backend)?.finish()?;
+    let mut sock = dealer(&ctx).connect(&backend)?;
     let mut rng = rand::thread_rng();
 
     loop {
@@ -78,8 +78,8 @@ async fn worker(ctx: Rc<Context>, worker_id: u64, backend: String) -> Result<(),
 
 /// Simulates zmq::proxy using asynchronous sockets.
 async fn proxy(ctx: Rc<Context>, frontend: String, backend: String) -> tmq::Result<()> {
-    let (mut router_rx, mut router_tx) = router(&ctx).bind(&frontend)?.finish()?.split();
-    let (mut dealer_rx, mut dealer_tx) = dealer(&ctx).bind(&backend)?.finish()?.split();
+    let (mut router_rx, mut router_tx) = router(&ctx).bind(&frontend)?.split();
+    let (mut dealer_rx, mut dealer_tx) = dealer(&ctx).bind(&backend)?.split();
 
     let mut frontend_fut = router_rx.next();
     let mut backend_fut = dealer_rx.next();

@@ -1,9 +1,7 @@
 use zmq::{Context, SocketType};
 
-use tmq::{request, Result, Multipart};
-use utils::{
-    generate_tcp_address, msg, sync_echo,
-};
+use tmq::{request, Multipart, Result};
+use utils::{generate_tcp_address, msg, sync_echo};
 
 mod utils;
 
@@ -11,7 +9,7 @@ mod utils;
 async fn single_message() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let requester = request(&ctx).connect(&address)?.finish()?;
+    let requester = request(&ctx).connect(&address)?;
 
     let echo = sync_echo(address, SocketType::REP, 1);
 
@@ -19,7 +17,7 @@ async fn single_message() -> Result<()> {
     let m2 = "Msg (contd.)";
     let message = Multipart::from(vec![msg(m1.as_bytes()), msg(m2.as_bytes())]);
     let reply_receiver = requester.send(message).await?;
-    if let Ok((multipart,_)) = reply_receiver.recv().await {
+    if let Ok((multipart, _)) = reply_receiver.recv().await {
         let expected: Multipart = vec![msg(m1.as_bytes()), msg(m2.as_bytes())].into();
         assert_eq!(expected, multipart);
     } else {
@@ -31,12 +29,11 @@ async fn single_message() -> Result<()> {
     Ok(())
 }
 
-
 #[tokio::test]
 async fn request_hammer() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let mut req_sock = request(&ctx).connect(&address)?.finish()?;
+    let mut req_sock = request(&ctx).connect(&address)?;
 
     let count = 1_000;
     let echo = sync_echo(address, SocketType::REP, count);

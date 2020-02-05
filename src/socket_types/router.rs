@@ -1,30 +1,28 @@
 use zmq::{self, Context as ZmqContext};
 
-use crate::{comm::SenderReceiver, poll::ZmqPoller, socket::AsZmqSocket, Result};
+use crate::{
+    comm::SenderReceiver, poll::ZmqPoller, socket::AsZmqSocket, FromZmqSocket, Result,
+    SocketBuilder,
+};
 
 /// Create a builder for a ROUTER socket.
-pub fn router(context: &ZmqContext) -> RouterBuilder {
-    RouterBuilder::new(context)
-}
-
-impl_builder!(ROUTER, RouterBuilder, RouterBuilderBound);
-
-pub struct RouterBuilderBound {
-    socket: zmq::Socket,
-}
-
-impl RouterBuilderBound {
-    pub fn finish(self) -> crate::Result<Router> {
-        Ok(Router {
-            inner: SenderReceiver::new(ZmqPoller::from_zmq_socket(self.socket)?),
-        })
-    }
+pub fn router(context: &ZmqContext) -> SocketBuilder<Router> {
+    SocketBuilder::new(context, zmq::SocketType::ROUTER)
 }
 
 /// Asynchronous ROUTER socket.
 pub struct Router {
     inner: SenderReceiver,
 }
+
+impl FromZmqSocket<Router> for Router {
+    fn from_zmq_socket(socket: zmq::Socket) -> crate::Result<Self> {
+        Ok(Self {
+            inner: SenderReceiver::new(ZmqPoller::from_zmq_socket(socket)?),
+        })
+    }
+}
+
 impl_wrapper!(Router, SenderReceiver, inner);
 impl_wrapper_sink!(Router, inner);
 impl_wrapper_stream!(Router, inner);

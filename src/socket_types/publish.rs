@@ -1,29 +1,24 @@
 use zmq::{self, Context as ZmqContext};
 
-use crate::{poll::ZmqPoller, Sender};
+use crate::{poll::ZmqPoller, FromZmqSocket, Sender, SocketBuilder};
 
 /// Create a builder for a PUB socket.
-pub fn publish(context: &ZmqContext) -> PublishBuilder {
-    PublishBuilder::new(context)
-}
-
-impl_builder!(PUB, PublishBuilder, PublishBuilderBound);
-
-pub struct PublishBuilderBound {
-    socket: zmq::Socket,
-}
-
-impl PublishBuilderBound {
-    pub fn finish(self) -> crate::Result<Publish> {
-        Ok(Publish {
-            inner: Sender::new(ZmqPoller::from_zmq_socket(self.socket)?),
-        })
-    }
+pub fn publish(context: &ZmqContext) -> SocketBuilder<Publish> {
+    SocketBuilder::new(context, zmq::SocketType::PUB)
 }
 
 /// Asynchronous PUB socket.
 pub struct Publish {
     inner: Sender,
 }
+
+impl FromZmqSocket<Publish> for Publish {
+    fn from_zmq_socket(socket: zmq::Socket) -> crate::Result<Self> {
+        Ok(Self {
+            inner: Sender::new(ZmqPoller::from_zmq_socket(socket)?),
+        })
+    }
+}
+
 impl_wrapper!(Publish, Sender, inner);
 impl_wrapper_sink!(Publish, inner);

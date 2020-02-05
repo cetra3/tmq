@@ -10,9 +10,7 @@ async fn main() -> Result<()> {
 
     pretty_env_logger::init();
 
-    let mut recv_sock = reply(&Context::new())
-        .bind("tcp://127.0.0.1:7897")?
-        .finish()?;
+    let mut recv_sock = reply(&Context::new()).bind("tcp://127.0.0.1:7897")?;
 
     loop {
         let (multipart, send_sock) = recv_sock.recv().await?;

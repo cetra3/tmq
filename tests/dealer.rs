@@ -14,7 +14,7 @@ mod utils;
 async fn send_single_message() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = dealer(&ctx).connect(&address)?.finish()?;
+    let sock = dealer(&ctx).connect(&address)?;
 
     let data = vec![vec!["hello", "world"]];
     let thread = sync_receive_multiparts(address, SocketType::DEALER, data.clone());
@@ -30,7 +30,7 @@ async fn send_single_message() -> Result<()> {
 async fn send_multiple_messages() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = dealer(&ctx).connect(&address)?.finish()?;
+    let sock = dealer(&ctx).connect(&address)?;
 
     let data = vec![
         vec!["hello", "world"],
@@ -50,7 +50,7 @@ async fn send_multiple_messages() -> Result<()> {
 async fn send_empty_message() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = dealer(&ctx).connect(&address)?.finish()?;
+    let sock = dealer(&ctx).connect(&address)?;
 
     let data = vec!["hello", "world"];
     let thread = sync_receive_multiparts(address, SocketType::DEALER, vec![data.clone()]);
@@ -66,7 +66,7 @@ async fn send_empty_message() -> Result<()> {
 async fn send_hammer() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = dealer(&ctx).connect(&address)?.finish()?;
+    let sock = dealer(&ctx).connect(&address)?;
 
     let count = 1_000;
     let data = vec!["hello", "world"];
@@ -83,7 +83,7 @@ async fn send_hammer() -> Result<()> {
 async fn receive_hammer() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = dealer(&ctx).bind(&address)?.finish()?;
+    let sock = dealer(&ctx).bind(&address)?;
     hammer_receive(sock, address, SocketType::DEALER).await
 }
 
@@ -91,7 +91,7 @@ async fn receive_hammer() -> Result<()> {
 async fn receive_buffered_hammer() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = dealer(&ctx).bind(&address)?.finish()?;
+    let sock = dealer(&ctx).bind(&address)?;
     let (rx, _) = sock.split();
     hammer_receive(rx.buffered(1024), address, SocketType::DEALER).await
 }
@@ -100,7 +100,7 @@ async fn receive_buffered_hammer() -> Result<()> {
 async fn proxy_sequence() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let mut sock = dealer(&ctx).connect(&address)?.finish()?;
+    let mut sock = dealer(&ctx).connect(&address)?;
 
     let count = 1_000;
 
@@ -135,7 +135,7 @@ async fn proxy_sequence() -> Result<()> {
 async fn proxy_interleaved() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let mut sock = dealer(&ctx).connect(&address)?.finish()?;
+    let mut sock = dealer(&ctx).connect(&address)?;
 
     let count = 1_000;
     let echo = sync_echo(address, SocketType::DEALER, count);
@@ -164,7 +164,7 @@ async fn proxy_interleaved() -> Result<()> {
 async fn split_echo() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let (rx, tx) = dealer(&ctx).bind(&address)?.finish()?.split();
+    let (rx, tx) = dealer(&ctx).bind(&address)?.split();
     let count = 10;
 
     let thread = spawn(move || {
@@ -198,7 +198,7 @@ async fn split_echo() -> Result<()> {
 async fn split_send_all() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let (_, mut tx) = dealer(&ctx).connect(&address)?.finish()?.split();
+    let (_, mut tx) = dealer(&ctx).connect(&address)?.split();
 
     let count = 10_000;
     let thread = spawn(move || {

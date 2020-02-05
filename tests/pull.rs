@@ -14,7 +14,7 @@ mod utils;
 async fn receive_single_message() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = pull(&ctx).bind(&address)?.finish()?;
+    let sock = pull(&ctx).bind(&address)?;
 
     let thread = sync_send_multiparts(address, SocketType::PUSH, vec![vec!["hello", "world"]]);
 
@@ -29,7 +29,7 @@ async fn receive_single_message() -> Result<()> {
 async fn receive_multiple_messages() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = pull(&ctx).bind(&address)?.finish()?;
+    let sock = pull(&ctx).bind(&address)?;
 
     let thread = sync_send_multiparts(
         address,
@@ -52,7 +52,7 @@ async fn receive_multiple_messages() -> Result<()> {
 async fn receive_hammer() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = pull(&ctx).bind(&address)?.finish()?;
+    let sock = pull(&ctx).bind(&address)?;
     hammer_receive(sock, address, SocketType::PUSH).await
 }
 
@@ -60,7 +60,7 @@ async fn receive_hammer() -> Result<()> {
 async fn receive_buffered_hammer() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = pull(&ctx).bind(&address)?.finish()?;
+    let sock = pull(&ctx).bind(&address)?;
     hammer_receive(sock.buffered(1024), address, SocketType::PUSH).await
 }
 
@@ -85,7 +85,7 @@ async fn receive_delayed() -> Result<()> {
     barrier.wait();
 
     let ctx = Context::new();
-    let mut sock = pull(&ctx).bind(&address_recv)?.finish()?;
+    let mut sock = pull(&ctx).bind(&address_recv)?;
     sock.set_rcvhwm(1)?;
 
     for _ in 0..3 {

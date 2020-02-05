@@ -13,7 +13,7 @@ mod utils;
 async fn receive_single_message() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let mut sock = router(&ctx).bind(&address)?.finish()?;
+    let mut sock = router(&ctx).bind(&address)?;
 
     let data = vec!["hello", "world"];
     let thread = sync_send_multiparts(address, SocketType::DEALER, vec![data.clone()]);
@@ -35,7 +35,7 @@ async fn receive_single_message() -> Result<()> {
 async fn receive_multiple_messages() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let mut sock = router(&ctx).bind(&address)?.finish()?;
+    let mut sock = router(&ctx).bind(&address)?;
 
     let data = vec![vec!["hello", "world"], vec!["second", "message"]];
 
@@ -83,7 +83,7 @@ async fn router_receive_hammer<S: Stream<Item = Result<Multipart>> + Unpin>(
 async fn receive_hammer() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = router(&ctx).bind(&address)?.finish()?;
+    let sock = router(&ctx).bind(&address)?;
     router_receive_hammer(sock, address).await
 }
 
@@ -91,7 +91,7 @@ async fn receive_hammer() -> Result<()> {
 async fn receive_buffered_hammer() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = router(&ctx).bind(&address)?.finish()?;
+    let sock = router(&ctx).bind(&address)?;
     let (rx, _) = sock.split();
     router_receive_hammer(rx.buffered(1024), address).await
 }
@@ -101,8 +101,8 @@ async fn proxy() -> Result<()> {
     let frontend = generate_tcp_address();
     let backend = generate_tcp_address();
     let ctx = Context::new();
-    let router = router(&ctx).bind(&frontend)?.finish()?;
-    let dealer = dealer(&ctx).bind(&backend)?.finish()?;
+    let router = router(&ctx).bind(&frontend)?;
+    let dealer = dealer(&ctx).bind(&backend)?;
 
     let count: u64 = 10_000;
     let client_count: u64 = 3;

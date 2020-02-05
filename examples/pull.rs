@@ -13,9 +13,7 @@ async fn main() -> Result<()> {
 
     pretty_env_logger::init();
 
-    let mut socket = pull(&Context::new())
-        .bind("tcp://127.0.0.1:7899")?
-        .finish()?;
+    let mut socket = pull(&Context::new()).bind("tcp://127.0.0.1:7899")?;
 
     while let Some(msg) = socket.next().await {
         info!(

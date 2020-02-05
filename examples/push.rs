@@ -16,9 +16,7 @@ async fn main() -> Result<()> {
 
     pretty_env_logger::init();
 
-    let mut socket = push(&Context::new())
-        .connect("tcp://127.0.0.1:3000")?
-        .finish()?;
+    let mut socket = push(&Context::new()).connect("tcp://127.0.0.1:3000")?;
 
     let mut i = 0;
     loop {

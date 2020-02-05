@@ -10,7 +10,7 @@ mod utils;
 async fn send_single_message() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = publish(&ctx).bind(&address)?.finish()?;
+    let sock = publish(&ctx).bind(&address)?;
 
     let topic = "topic2";
     let data = vec![vec![topic, "hello", "world"]];

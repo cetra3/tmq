@@ -1,20 +1,24 @@
 use zmq::{self, Context as ZmqContext};
 
-use crate::{poll::ZmqPoller, socket::AsZmqSocket, Receiver};
+use crate::{poll::ZmqPoller, socket::AsZmqSocket, FromZmqSocket, Receiver, SocketBuilder};
 
 /// Create a builder for a SUB socket.
-pub fn subscribe(context: &ZmqContext) -> SubscribeBuilder {
-    SubscribeBuilder::new(context)
+pub fn subscribe(context: &ZmqContext) -> SocketBuilder<SubscribeWithoutTopic> {
+    SocketBuilder::new(context, zmq::SocketType::SUB)
 }
 
-impl_builder!(SUB, SubscribeBuilder, SubscribeBuilderBound);
-
-/// SUB socket which is already bound or connected.
-pub struct SubscribeBuilderBound {
+/// SUB socket which is already bound or connected, but isn't yet subscribed to a topic.
+pub struct SubscribeWithoutTopic {
     socket: zmq::Socket,
 }
 
-impl SubscribeBuilderBound {
+impl FromZmqSocket<SubscribeWithoutTopic> for SubscribeWithoutTopic {
+    fn from_zmq_socket(socket: zmq::Socket) -> crate::Result<Self> {
+        Ok(Self { socket })
+    }
+}
+
+impl SubscribeWithoutTopic {
     /// Finishes creating the SUB socket by subscribing to the given topic.
     pub fn subscribe(self, topic: &[u8]) -> crate::Result<Subscribe> {
         self.socket.set_subscribe(topic)?;

@@ -1,10 +1,10 @@
 use tmq::{subscribe, Result};
 use zmq::{Context, SocketType};
 
+use futures::StreamExt;
 use std::time::Duration;
 use tokio::time::timeout;
-use futures::StreamExt;
-use utils::{generate_tcp_address};
+use utils::generate_tcp_address;
 
 mod utils;
 
@@ -26,7 +26,12 @@ async fn receive_single_message() -> Result<()> {
     for _ in 0usize..5 {
         pub_sock.send_multipart(&data, 0).unwrap();
         if let Ok(Some(Ok(incoming))) = timeout(Duration::from_millis(100), sub_sock.next()).await {
-            assert_eq!(incoming, data.into_iter().map(tmq::Message::from).collect::<tmq::Multipart>());
+            assert_eq!(
+                incoming,
+                data.into_iter()
+                    .map(tmq::Message::from)
+                    .collect::<tmq::Multipart>()
+            );
             return Ok(());
         }
     }

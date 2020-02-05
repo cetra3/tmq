@@ -135,7 +135,11 @@ impl ZmqPoller {
                 Ok(_) => {}
                 Err(zmq::Error::EAGAIN) => {
                     buffer.push_front(msg);
-                    log::warn!("EAGAIN during send: message {} out of {}", len - buffer.len(), len);
+                    log::warn!(
+                        "EAGAIN during send: message {} out of {}",
+                        len - buffer.len(),
+                        len
+                    );
                     return Poll::Pending;
                 }
                 Err(e) => return Poll::Ready(Err(e.into())),

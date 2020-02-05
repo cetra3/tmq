@@ -1,83 +1,54 @@
-use crate::{poll::ZmqPoller, Multipart};
+use crate::{poll::ZmqPoller, FromZmqSocket, Multipart, SocketBuilder};
 use zmq::{self, Context as ZmqContext};
 
-/// Create a builder for a Request socket
-pub fn request(context: &ZmqContext) -> RequestBuilder {
-    RequestBuilder::new(context)
-}
-
-impl_builder!(REQ, RequestBuilder, RequestBuilderBound);
-
-pub struct RequestBuilderBound {
-    socket: zmq::Socket,
-}
-
-impl RequestBuilderBound {
-    pub fn finish(self) -> crate::Result<RequestSender> {
-        Ok(RequestSender {
-            poller: ZmqPoller::from_zmq_socket(self.socket)?,
-        })
-    }
+/// Create a builder for a REQ socket
+pub fn request(context: &ZmqContext) -> SocketBuilder<RequestSender> {
+    SocketBuilder::new(context, zmq::SocketType::REQ)
 }
 
 pub struct RequestSender {
-    poller: ZmqPoller,
+    inner: ZmqPoller,
 }
 
-impl crate::socket::AsZmqSocket for RequestSender {
-    #[inline]
-    fn get_socket(&self) -> &zmq::Socket {
-        self.poller.get_socket()
+impl FromZmqSocket<RequestSender> for RequestSender {
+    fn from_zmq_socket(socket: zmq::Socket) -> crate::Result<Self> {
+        Ok(Self {
+            inner: ZmqPoller::from_zmq_socket(socket)?,
+        })
     }
 }
+
+impl_as_socket!(RequestSender, inner);
 
 impl RequestSender {
     pub async fn send(self, mut msg: Multipart) -> crate::Result<RequestReceiver> {
-        futures::future::poll_fn(|cx| self.poller.multipart_flush(cx, &mut msg)).await?;
-        Ok(RequestReceiver {
-            poller: self.poller,
-        })
+        futures::future::poll_fn(|cx| self.inner.multipart_flush(cx, &mut msg)).await?;
+        Ok(RequestReceiver { inner: self.inner })
     }
 }
 
-/// Create a builder for a Reply socket
-pub fn reply(context: &ZmqContext) -> ReplyBuilder {
-    ReplyBuilder::new(context)
-}
-
-impl_builder!(REP, ReplyBuilder, ReplyBuilderBound);
-
-pub struct ReplyBuilderBound {
-    socket: zmq::Socket,
-}
-
-impl ReplyBuilderBound {
-    pub fn finish(self) -> crate::Result<RequestReceiver> {
-        Ok(RequestReceiver {
-            poller: ZmqPoller::from_zmq_socket(self.socket)?,
-        })
-    }
+/// Create a builder for a REP socket
+pub fn reply(context: &ZmqContext) -> SocketBuilder<RequestReceiver> {
+    SocketBuilder::new(context, zmq::SocketType::REP)
 }
 
 pub struct RequestReceiver {
-    poller: ZmqPoller,
+    inner: ZmqPoller,
 }
 
-impl crate::socket::AsZmqSocket for RequestReceiver {
-    #[inline]
-    fn get_socket(&self) -> &zmq::Socket {
-        self.poller.get_socket()
+impl FromZmqSocket<RequestReceiver> for RequestReceiver {
+    fn from_zmq_socket(socket: zmq::Socket) -> crate::Result<Self> {
+        Ok(Self {
+            inner: ZmqPoller::from_zmq_socket(socket)?,
+        })
     }
 }
 
+impl_as_socket!(RequestReceiver, inner);
+
 impl RequestReceiver {
     pub async fn recv(self) -> crate::Result<(Multipart, RequestSender)> {
-        let msg = futures::future::poll_fn(|cx| self.poller.multipart_recv(cx)).await?;
-        Ok((
-            msg,
-            RequestSender {
-                poller: self.poller,
-            },
-        ))
+        let msg = futures::future::poll_fn(|cx| self.inner.multipart_recv(cx)).await?;
+        Ok((msg, RequestSender { inner: self.inner }))
     }
 }

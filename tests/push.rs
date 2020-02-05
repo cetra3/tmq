@@ -15,7 +15,7 @@ mod utils;
 async fn send_single_message() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = push(&ctx).connect(&address)?.finish()?;
+    let sock = push(&ctx).connect(&address)?;
 
     let thread = sync_receive_multiparts(address, SocketType::PULL, vec![vec!["hello", "world"]]);
 
@@ -30,7 +30,7 @@ async fn send_single_message() -> Result<()> {
 async fn send_multiple_messages() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = push(&ctx).connect(&address)?.finish()?;
+    let sock = push(&ctx).connect(&address)?;
 
     let data = vec![
         vec!["hello", "world"],
@@ -51,7 +51,7 @@ async fn send_multiple_messages() -> Result<()> {
 async fn send_empty_message() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = push(&ctx).connect(&address)?.finish()?;
+    let sock = push(&ctx).connect(&address)?;
 
     let data = vec!["hello", "world"];
     let thread = sync_receive_multiparts(address, SocketType::PULL, vec![data.clone()]);
@@ -67,7 +67,7 @@ async fn send_empty_message() -> Result<()> {
 async fn send_hammer() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let sock = push(&ctx).connect(&address)?.finish()?;
+    let sock = push(&ctx).connect(&address)?;
 
     let count = 1_000;
     let data = vec!["hello", "world"];
@@ -84,7 +84,7 @@ async fn send_hammer() -> Result<()> {
 async fn send_delayed() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let mut sock = push(&ctx).connect(&address)?.finish()?;
+    let mut sock = push(&ctx).connect(&address)?;
 
     // set send high water mark to a single message
     sock.set_sndhwm(1).unwrap();

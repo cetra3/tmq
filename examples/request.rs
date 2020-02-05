@@ -10,9 +10,7 @@ async fn main() -> Result<()> {
 
     pretty_env_logger::init();
 
-    let mut send_sock = request(&Context::new())
-        .connect("tcp://127.0.0.1:7897")?
-        .finish()?;
+    let mut send_sock = request(&Context::new()).connect("tcp://127.0.0.1:7897")?;
 
     let mut i = 0u32;
     loop {
