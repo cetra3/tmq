@@ -9,6 +9,7 @@ use crate::socket::AsZmqSocket;
 use crate::{socket::SocketWrapper, Multipart, Result};
 use std::{collections::VecDeque, ops::Deref};
 use zmq::Socket;
+use crate::error::TmqError::InterruptedSend;
 
 /// Implements functions for asynchronous reading and writing of multipart messages.
 ///
@@ -135,11 +136,11 @@ impl ZmqPoller {
                 Ok(_) => {}
                 Err(zmq::Error::EAGAIN) => {
                     buffer.push_front(msg);
-                    log::warn!(
-                        "EAGAIN during send: message {} out of {}",
-                        len - buffer.len(),
-                        len
-                    );
+
+                    // If this was not the first message, we return a special error.
+                    if buffer.len() != len {
+                        return Poll::Ready(Err(InterruptedSend));
+                    }
                     return Poll::Pending;
                 }
                 Err(e) => return Poll::Ready(Err(e.into())),
