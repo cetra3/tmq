@@ -42,4 +42,10 @@ impl Subscribe {
         self.get_socket().set_subscribe(topic)?;
         Ok(())
     }
+
+    /// Removes a topic from this subscriber.
+    pub fn unsubscribe(&mut self, topic: &[u8]) -> crate::Result<()> {
+        self.get_socket().set_unsubscribe(topic)?;
+        Ok(())
+    }
 }

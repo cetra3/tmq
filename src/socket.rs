@@ -113,10 +113,14 @@ pub trait SocketExt {
 
     fn get_backlog(&self) -> Result<i32>;
     fn set_backlog(&self, value: i32) -> Result<()>;
+
+    fn get_identity(&self) -> Result<Vec<u8>>;
+    fn set_identity(&self, value: &[u8]) -> Result<()>;
 }
 
 macro_rules! getter {
     ($name: ident, $retval: ty) => {
+        #[inline]
         fn $name(&self) -> $crate::Result<$retval> {
             self.get_socket().$name().map_err(|e| e.into())
         }
@@ -124,6 +128,7 @@ macro_rules! getter {
 }
 macro_rules! setter {
     ($name: ident, $type: ty) => {
+        #[inline]
         fn $name(&self, value: $type) -> $crate::Result<()> {
             self.get_socket().$name(value).map_err(|e| e.into())
         }
@@ -199,4 +204,7 @@ impl<T: AsZmqSocket> SocketExt for T {
 
     getter!(get_backlog, i32);
     setter!(set_backlog, i32);
+
+    getter!(get_identity, Vec<u8>);
+    setter!(set_identity, &[u8]);
 }

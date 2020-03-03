@@ -30,18 +30,18 @@ impl_split!(Router, inner);
 
 impl Router {
     pub fn is_router_mandatory(&self) -> Result<bool> {
-        Ok(self.inner.get_socket().is_router_mandatory()?)
+        Ok(self.get_socket().is_router_mandatory()?)
     }
     pub fn set_router_mandatory(&self, value: bool) -> Result<()> {
-        self.inner.get_socket().set_router_mandatory(value)?;
+        self.get_socket().set_router_mandatory(value)?;
         Ok(())
     }
 
     pub fn is_router_handover(&self) -> Result<bool> {
-        Ok(self.inner.get_socket().is_router_handover()?)
+        Ok(self.get_socket().is_router_handover()?)
     }
     pub fn set_router_handover(&self, value: bool) -> Result<()> {
-        self.inner.get_socket().set_router_handover(value)?;
+        self.get_socket().set_router_handover(value)?;
         Ok(())
     }
 }
