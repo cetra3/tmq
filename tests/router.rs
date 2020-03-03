@@ -178,7 +178,7 @@ async fn proxy() -> Result<()> {
         client.join().unwrap();
     }
     for _ in 0..worker_count {
-        dealer_tx.send(vec!["end".into()]).await?;
+        dealer_tx.send(vec!["end"]).await?;
     }
     for worker in workers {
         worker.join().unwrap();

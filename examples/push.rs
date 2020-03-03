@@ -6,7 +6,7 @@ use tokio::time::delay_for;
 use log::info;
 
 use std::env;
-use tmq::{push, Context, Multipart, Result};
+use tmq::{push, Context, Result};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -24,7 +24,7 @@ async fn main() -> Result<()> {
         i += 1;
 
         info!("Push: {}", message);
-        let multipart = Multipart::from(vec![zmq::Message::from(&message)]);
+        let multipart = vec![message.as_bytes()];
         socket.send(multipart).await?;
         delay_for(Duration::from_millis(1000)).await;
     }

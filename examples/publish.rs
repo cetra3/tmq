@@ -1,4 +1,4 @@
-use tmq::{publish, Context, Multipart, Result};
+use tmq::{publish, Context, Result};
 
 use futures::SinkExt;
 use log::info;
@@ -23,10 +23,7 @@ async fn main() -> Result<()> {
         info!("Publish: {}", message);
 
         socket
-            .send(Multipart::from(vec![
-                zmq::Message::from(&"topic"),
-                zmq::Message::from(&message),
-            ]))
+            .send(vec![b"topic" as &[u8], message.as_bytes()])
             .await?;
         delay_for(Duration::from_secs(1)).await;
     }

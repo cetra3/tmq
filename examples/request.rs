@@ -1,6 +1,6 @@
 use log::info;
 use std::env;
-use tmq::{request, Context, Multipart, Result};
+use tmq::{request, Context, Message, Result};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -18,8 +18,8 @@ async fn main() -> Result<()> {
         i += 1;
 
         info!("Request: {:?}", &message);
-        let multipart = Multipart::from(zmq::Message::from(message.as_bytes()));
-        let recv_sock = send_sock.send(multipart).await?;
+        let message: Message = message.as_bytes().into();
+        let recv_sock = send_sock.send(message.into()).await?;
         let (msg, send) = recv_sock.recv().await?;
         send_sock = send;
         info!(

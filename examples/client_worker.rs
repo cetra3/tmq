@@ -29,20 +29,12 @@ async fn client(ctx: Rc<Context>, client_id: u64, frontend: String) -> tmq::Resu
         println!("Client {} sending request {}", client_id, request_id);
 
         let request_str = request_id.to_string();
-        let msg = vec![
-            client_id.as_bytes().into(),
-            request_str.as_bytes().into(),
-            "request".into(),
-        ];
+        let msg = vec![client_id.as_bytes(), request_str.as_bytes(), b"request"];
         sock.send(msg).await?;
 
         let response = sock.next().await.unwrap()?;
-        let expected: Multipart = vec![
-            client_id.as_bytes().into(),
-            request_str.as_bytes().into(),
-            "response".into(),
-        ]
-        .into();
+        let expected: Multipart =
+            vec![client_id.as_bytes(), request_str.as_bytes(), b"response"].into();
         assert_eq!(expected, response);
 
         let sleep_time = rng.gen_range(200, 1000);

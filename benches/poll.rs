@@ -3,8 +3,9 @@ extern crate criterion;
 
 use criterion::Criterion;
 
+use futures::{SinkExt, StreamExt};
 use std::thread::spawn;
-use tmq::{pull, push};
+use tmq::{pull, push, SocketExt};
 use zmq::SocketType;
 
 fn poll_benchmark(c: &mut Criterion) {
@@ -22,7 +23,7 @@ fn poll_benchmark(c: &mut Criterion) {
         sender.connect(address).unwrap();
 
         let ctx2 = zmq::Context::new();
-        let mut socket = runtime.enter(|| pull(&ctx2).bind(address).unwrap().unwrap());
+        let mut socket = runtime.enter(|| pull(&ctx2).bind(address).unwrap());
 
         b.iter_with_setup(
             || {
@@ -68,7 +69,7 @@ fn poll_benchmark(c: &mut Criterion) {
         });
 
         let ctx = zmq::Context::new();
-        let mut socket = runtime.enter(|| push(&ctx).connect(address).unwrap().unwrap());
+        let mut socket = runtime.enter(|| push(&ctx).connect(address).unwrap());
         socket.set_linger(0).unwrap();
 
         let mut sent = 0;

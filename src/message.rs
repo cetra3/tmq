@@ -56,9 +56,9 @@ impl Multipart {
     }
 }
 
-impl From<Vec<Message>> for Multipart {
-    fn from(item: Vec<Message>) -> Self {
-        Self(item.into())
+impl<T: Into<Message>> From<Vec<T>> for Multipart {
+    fn from(item: Vec<T>) -> Self {
+        Self(item.into_iter().map(|i| i.into()).collect())
     }
 }
 
