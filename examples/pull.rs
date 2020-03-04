@@ -1,37 +1,28 @@
-extern crate futures;
-extern crate pretty_env_logger;
-extern crate tmq;
-extern crate tokio;
+use futures::StreamExt;
 
-#[macro_use]
-extern crate log;
-
-extern crate failure;
-
-use futures::{Future, Stream};
-
-use tmq::*;
+use log::info;
 
 use std::env;
+use tmq::{pull, Context, Result};
 
-fn main() {
-    if env::var("RUST_LOG").is_err() {
-        env::set_var("RUST_LOG", "pull=DEBUG");
+#[tokio::main]
+async fn main() -> Result<()> {
+    if let Err(_) = env::var("RUST_LOG") {
+        env::set_var("RUST_LOG", "subscribe=DEBUG");
     }
 
     pretty_env_logger::init();
 
-    let request = pull(&Context::new())
-        .bind("tcp://127.0.0.1:7899")
-        .expect("Couldn't bind")
-        .finish()
-        .for_each(|val| {
-            info!("Pull: {}", val.as_str().unwrap_or(""));
-            Ok(())
-        })
-        .map_err(|e| {
-            error!("Error Pulling: {}", e);
-        });
+    let mut socket = pull(&Context::new()).bind("tcp://127.0.0.1:7899")?;
 
-    tokio::run(request);
+    while let Some(msg) = socket.next().await {
+        info!(
+            "Pull: {:?}",
+            msg?.iter()
+                .map(|item| item.as_str().unwrap_or("invalid text"))
+                .collect::<Vec<&str>>()
+        );
+    }
+
+    Ok(())
 }

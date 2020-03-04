@@ -1,37 +1,29 @@
-extern crate futures;
-extern crate pretty_env_logger;
-extern crate tmq;
-extern crate tokio;
+use futures::StreamExt;
 
-#[macro_use]
-extern crate log;
+use tmq::{subscribe, Context, Result};
 
-extern crate failure;
-
-use futures::{Future, Stream};
-
-use tmq::*;
-
+use log::info;
 use std::env;
 
-fn main() {
+#[tokio::main]
+async fn main() -> Result<()> {
     if let Err(_) = env::var("RUST_LOG") {
         env::set_var("RUST_LOG", "subscribe=DEBUG");
     }
 
     pretty_env_logger::init();
 
-    let request = subscribe(&Context::new())
-        .connect("tcp://127.0.0.1:7899")
-        .expect("Couldn't connect")
-        .subscribe("")
-        .for_each(|val| {
-            info!("Subscribe: {}", val.as_str().unwrap_or(""));
-            Ok(())
-        })
-        .map_err(|e| {
-            error!("Error Subscribing: {}", e);
-        });
+    let mut socket = subscribe(&Context::new())
+        .connect("tcp://127.0.0.1:7899")?
+        .subscribe(b"topic")?;
 
-    tokio::run(request);
+    while let Some(msg) = socket.next().await {
+        info!(
+            "Subscribe: {:?}",
+            msg?.iter()
+                .map(|item| item.as_str().unwrap_or("invalid text"))
+                .collect::<Vec<&str>>()
+        );
+    }
+    Ok(())
 }

@@ -1,60 +1,233 @@
-use failure::Error;
-use futures::{Async, Poll};
-use socket::MioSocket;
+use std::task::Context;
 
+use futures::{ready, task::Poll};
 use mio::Ready;
-use tokio::reactor::PollEvented2;
-
+use tokio::io::PollEvented;
 use zmq;
 
-pub trait Poller {
-    fn send_message(&self, msg: &zmq::Message) -> Poll<(), Error>;
+use crate::socket::AsZmqSocket;
+use crate::{socket::SocketWrapper, Multipart, Result};
+use std::{collections::VecDeque, ops::Deref};
+use zmq::Socket;
+use crate::error::TmqError::InterruptedSend;
 
-    fn recv_message(&self, msg: &mut zmq::Message) -> Poll<(), Error>;
+/// Implements functions for asynchronous reading and writing of multipart messages.
+///
+/// Uses a wrapped ZMQ socket. It needs to use a distinct inner type because
+/// [`tokio::io::PollEvented`] requires a [`mio::Evented`] parameter.
+pub(crate) struct ZmqPoller(PollEvented<SocketWrapper>);
+
+impl ZmqPoller {
+    #[inline]
+    pub(crate) fn from_zmq_socket(socket: zmq::Socket) -> Result<Self> {
+        Ok(ZmqPoller(PollEvented::new(SocketWrapper::new(socket))?))
+    }
 }
 
-impl Poller for PollEvented2<MioSocket> {
-    fn send_message(&self, msg: &zmq::Message) -> Poll<(), Error> {
-        match self.poll_write_ready()? {
-            Async::Ready(_) => {
-                //Send the message, and if it will block, then we set up a notifier
-                if let Err(e) = self.get_ref().io.send(&**msg, zmq::DONTWAIT) {
-                    if e == zmq::Error::EAGAIN {
-                        self.clear_write_ready()?;
-                        return Ok(Async::NotReady);
-                    } else {
-                        return Err(e.into());
-                    }
-                }
-                return Ok(Async::Ready(()));
-            }
+impl AsZmqSocket for ZmqPoller {
+    #[inline]
+    fn get_socket(&self) -> &Socket {
+        &self.0.get_ref().socket
+    }
+}
 
-            //If it's not ready to send yet, then we basically need to hold onto the message and wait
-            Async::NotReady => {
-                return Ok(Async::NotReady);
+impl ZmqPoller {
+    /// Attempt to receive a Multipart message from a ZeroMQ socket with buffering.
+    ///
+    /// If there is any message in the buffer, it will be returned right away.
+    /// If not, a batch of messages up to the capacity of the buffer will be read from the socket.
+    ///
+    /// If nothing was received, the read flag is cleared.
+    pub(crate) fn multipart_recv_buffered(
+        &self,
+        cx: &mut Context<'_>,
+        read_buffer: &mut ReceiverBuffer,
+    ) -> Poll<Result<Multipart>> {
+        if read_buffer.is_empty() {
+            ready!(self.multipart_poll_read_ready(cx))?;
+
+            let mut buffer = Multipart::default();
+            loop {
+                let mut msg = zmq::Message::new();
+                match self.get_socket().recv(&mut msg, zmq::DONTWAIT) {
+                    Ok(_) => {
+                        let more = msg.get_more();
+                        buffer.push_back(msg);
+                        if !more {
+                            read_buffer.push_back(buffer);
+                            if read_buffer.is_full() {
+                                break Poll::Ready(Ok(read_buffer.pop_front().unwrap()));
+                            }
+
+                            buffer = Multipart::default();
+                        }
+                    }
+                    Err(zmq::Error::EAGAIN) => {
+                        if !buffer.is_empty() {
+                            read_buffer.push_back(buffer);
+                        }
+                        self.clear_read_ready(cx, Ready::readable())?;
+
+                        if read_buffer.is_empty() {
+                            break Poll::Pending;
+                        } else {
+                            break Poll::Ready(Ok(read_buffer.pop_front().unwrap()));
+                        }
+                    }
+                    Err(e) => break Poll::Ready(Err(e.into())),
+                }
             }
+        } else {
+            Poll::Ready(Ok(read_buffer.pop_front().unwrap()))
         }
     }
 
-    fn recv_message(&self, msg: &mut zmq::Message) -> Poll<(), Error> {
-        let ready = Ready::readable();
+    /// Attempt to receive a Multipart message from a ZeroMQ socket.
+    ///
+    /// Either the whole multipart at once or nothing is received (according to
+    /// [http://zguide.zeromq.org/page:all#Multipart-Messages], when one part of a multipart message
+    /// has been received, all the others are already available as well).
+    ///
+    /// If nothing was received, the read flag is cleared.
+    pub(crate) fn multipart_recv(&self, cx: &mut Context<'_>) -> Poll<Result<Multipart>> {
+        ready!(self.multipart_poll_read_ready(cx))?;
 
-        match self.poll_read_ready(ready)? {
-            Async::Ready(_) => {
-                if let Err(e) = self.get_ref().io.recv(msg, zmq::DONTWAIT) {
-                    if e == zmq::Error::EAGAIN {
-                        self.clear_read_ready(ready)?;
-                        return Ok(Async::NotReady);
-                    } else {
-                        return Err(e.into());
+        let mut buffer = Multipart::default();
+        loop {
+            let mut msg = zmq::Message::new();
+            match self.get_socket().recv(&mut msg, zmq::DONTWAIT) {
+                Ok(_) => {
+                    let more = msg.get_more();
+                    buffer.push_back(msg);
+                    if !more {
+                        break;
                     }
                 }
-
-                return Ok(Async::Ready(()));
-            }
-            Async::NotReady => {
-                return Ok(Async::NotReady);
+                Err(zmq::Error::EAGAIN) => {
+                    assert!(buffer.is_empty());
+                    log::warn!("EAGAIN during first message read");
+                    self.clear_read_ready(cx, Ready::readable())?;
+                    return Poll::Pending;
+                }
+                Err(e) => return Poll::Ready(Err(e.into())),
             }
         }
+
+        assert!(!buffer.is_empty());
+        Poll::Ready(Ok(buffer))
+    }
+
+    /// Attempt to send a multipart message.
+    ///
+    /// Sending the whole message at once may not be possible.
+    /// If the function returns `Poll::Ready(Ok(()))`, the whole message has been sent.
+    /// If the function returns `Poll::Pending`, the remaining message in the buffer should be
+    /// attempted to be written the next time the socket is polled.
+    pub(crate) fn multipart_send(&self, buffer: &mut Multipart) -> Poll<Result<()>> {
+        let len = buffer.len();
+
+        while let Some(msg) = buffer.pop_front() {
+            let mut flags = zmq::DONTWAIT;
+            if !buffer.is_empty() {
+                flags |= zmq::SNDMORE;
+            }
+
+            match self.get_socket().send(&*msg, flags) {
+                Ok(_) => {}
+                Err(zmq::Error::EAGAIN) => {
+                    buffer.push_front(msg);
+
+                    // If this was not the first message, we return a special error.
+                    if buffer.len() != len {
+                        return Poll::Ready(Err(InterruptedSend));
+                    }
+                    return Poll::Pending;
+                }
+                Err(e) => return Poll::Ready(Err(e.into())),
+            }
+        }
+
+        Poll::Ready(Ok(()))
+    }
+
+    /// Attempt to flush the message buffer.
+    /// If the buffer cannot be fully flushed, `Poll::Pending` will be returned and a wakeup
+    /// will be scheduled the next time there is an event on the ZMQ socket.
+    pub(crate) fn multipart_flush(
+        &self,
+        cx: &mut Context<'_>,
+        buffer: &mut Multipart,
+    ) -> Poll<Result<()>> {
+        while !buffer.is_empty() {
+            ready!(self.multipart_poll_write_ready(cx))?;
+            ready!(self.multipart_send(buffer))?;
+        }
+
+        assert!(buffer.is_empty());
+        Poll::Ready(Ok(()))
+    }
+
+    /// Returns `Poll::Ready(Ok(()))` if the given ZMQ socket is ready for writing.
+    /// Returns `Poll::Pending` and schedules a wakeup on the next event for the socket otherwise.
+    pub(crate) fn multipart_poll_write_ready(&self, cx: &mut Context<'_>) -> Poll<Result<()>> {
+        self.multipart_poll(cx, zmq::POLLOUT)
+    }
+
+    /// Returns `Poll::Ready(Ok(()))` if the given ZMQ socket is ready for reading.
+    /// Returns `Poll::Pending` and schedules a wakeup on the next event for the socket otherwise.
+    pub(crate) fn multipart_poll_read_ready(&self, cx: &mut Context<'_>) -> Poll<Result<()>> {
+        self.multipart_poll(cx, zmq::POLLIN)
+    }
+
+    fn multipart_poll(&self, cx: &mut Context<'_>, event: zmq::PollEvents) -> Poll<Result<()>> {
+        let events = self.get_socket().get_events()?;
+        if events.contains(event) {
+            Poll::Ready(Ok(()))
+        } else {
+            self.clear_read_ready(cx, Ready::readable())?;
+            Poll::Pending
+        }
+    }
+}
+
+impl Deref for ZmqPoller {
+    type Target = PollEvented<SocketWrapper>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+/// Buffer used by receiver implementations to hold multiparts.
+pub(crate) struct ReceiverBuffer {
+    capacity: usize,
+    buffer: VecDeque<Multipart>,
+}
+
+impl ReceiverBuffer {
+    pub(crate) fn new(capacity: usize) -> Self {
+        assert!(capacity > 0);
+        let buffer = VecDeque::with_capacity(capacity);
+        Self { capacity, buffer }
+    }
+
+    #[inline]
+    pub(crate) fn is_empty(&self) -> bool {
+        self.buffer.is_empty()
+    }
+
+    #[inline]
+    pub(crate) fn is_full(&self) -> bool {
+        self.buffer.len() == self.capacity
+    }
+
+    #[inline]
+    pub(crate) fn pop_front(&mut self) -> Option<Multipart> {
+        self.buffer.pop_front()
+    }
+
+    #[inline]
+    pub(crate) fn push_back(&mut self, item: Multipart) {
+        self.buffer.push_back(item)
     }
 }

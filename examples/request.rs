@@ -1,50 +1,32 @@
-extern crate futures;
-extern crate pretty_env_logger;
-extern crate tmq;
-extern crate tokio;
-
-#[macro_use]
-extern crate log;
-
-extern crate failure;
-
-use futures::{stream, Future, Stream};
-
-use failure::Error;
-
-use tmq::*;
-
+use log::info;
 use std::env;
+use tmq::{request, Context, Message, Result};
 
-fn main() {
-    if let Err(_) = env::var("RUST_LOG") {
+#[tokio::main]
+async fn main() -> Result<()> {
+    if env::var("RUST_LOG").is_err() {
         env::set_var("RUST_LOG", "request=DEBUG");
     }
 
     pretty_env_logger::init();
 
-    let request = request(&Context::new())
-        .connect("tcp://127.0.0.1:7899")
-        .expect("Couldn't connect")
-        .with(make_request(5))
-        .for_each(|val| {
-            info!("Response: {}", val.as_str().unwrap_or(""));
-            Ok(())
-        })
-        .map_err(|err| {
-            error!("Error with request: {}", err);
-        });
+    let mut send_sock = request(&Context::new()).connect("tcp://127.0.0.1:7897")?;
 
-    tokio::run(request);
-}
+    let mut i = 0u32;
+    loop {
+        let message = format!("Req#{}", i);
+        i += 1;
 
-//Send some requests to the server
-fn make_request(count: usize) -> impl Stream<Item = Message, Error = Error> {
-    let mut vec = Vec::new();
-
-    for i in 0..count {
-        vec.push(Message::from(&format!("Request #{}", i)));
+        info!("Request: {:?}", &message);
+        let message: Message = message.as_bytes().into();
+        let recv_sock = send_sock.send(message.into()).await?;
+        let (msg, send) = recv_sock.recv().await?;
+        send_sock = send;
+        info!(
+            "Reply: {:?}",
+            msg.iter()
+                .map(|item| item.as_str().unwrap_or("invalid text"))
+                .collect::<Vec<&str>>()
+        );
     }
-
-    stream::iter_ok(vec)
 }
