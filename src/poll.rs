@@ -5,11 +5,11 @@ use mio::Ready;
 use tokio::io::PollEvented;
 use zmq;
 
+use crate::error::TmqError::InterruptedSend;
 use crate::socket::AsZmqSocket;
 use crate::{socket::SocketWrapper, Multipart, Result};
 use std::{collections::VecDeque, ops::Deref};
 use zmq::Socket;
-use crate::error::TmqError::InterruptedSend;
 
 /// Implements functions for asynchronous reading and writing of multipart messages.
 ///

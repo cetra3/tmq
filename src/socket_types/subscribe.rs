@@ -3,6 +3,32 @@ use zmq::{self, Context as ZmqContext};
 use crate::{poll::ZmqPoller, socket::AsZmqSocket, FromZmqSocket, Receiver, SocketBuilder};
 
 /// Create a builder for a SUB socket.
+///
+/// ## Usage Example
+///
+/// ```rust,no_run
+/// use futures::StreamExt;
+///
+/// use tmq::{subscribe, Context, Result};
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///
+///     let mut socket = subscribe(&Context::new())
+///         .connect("tcp://127.0.0.1:7899")?
+///         .subscribe(b"topic")?;
+///
+///     while let Some(msg) = socket.next().await {
+///         println!(
+///             "Subscribe: {:?}",
+///             msg?.iter()
+///                 .map(|item| item.as_str().unwrap_or("invalid text"))
+///                 .collect::<Vec<&str>>()
+///         );
+///     }
+///     Ok(())
+/// }
+/// ```
 pub fn subscribe(context: &ZmqContext) -> SocketBuilder<SubscribeWithoutTopic> {
     SocketBuilder::new(context, zmq::SocketType::SUB)
 }

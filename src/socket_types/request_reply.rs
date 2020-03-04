@@ -6,6 +6,7 @@ pub fn request(context: &ZmqContext) -> SocketBuilder<RequestSender> {
     SocketBuilder::new(context, zmq::SocketType::REQ)
 }
 
+/// A REQ Socket returned from the `request` fn
 pub struct RequestSender {
     inner: ZmqPoller,
 }
@@ -21,6 +22,7 @@ impl FromZmqSocket<RequestSender> for RequestSender {
 impl_as_socket!(RequestSender, inner);
 
 impl RequestSender {
+    /// Send a multipart message and return a `RequestReceiver`
     pub async fn send(self, mut msg: Multipart) -> crate::Result<RequestReceiver> {
         futures::future::poll_fn(|cx| self.inner.multipart_flush(cx, &mut msg)).await?;
         Ok(RequestReceiver { inner: self.inner })
@@ -31,7 +33,7 @@ impl RequestSender {
 pub fn reply(context: &ZmqContext) -> SocketBuilder<RequestReceiver> {
     SocketBuilder::new(context, zmq::SocketType::REP)
 }
-
+/// A `RequestReceiver` is returned After sending a message
 pub struct RequestReceiver {
     inner: ZmqPoller,
 }
@@ -47,6 +49,7 @@ impl FromZmqSocket<RequestReceiver> for RequestReceiver {
 impl_as_socket!(RequestReceiver, inner);
 
 impl RequestReceiver {
+    /// Receive a multipart message and return a `RequestSender`
     pub async fn recv(self) -> crate::Result<(Multipart, RequestSender)> {
         let msg = futures::future::poll_fn(|cx| self.inner.multipart_recv(cx)).await?;
         Ok((msg, RequestSender { inner: self.inner }))

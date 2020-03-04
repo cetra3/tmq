@@ -1,9 +1,16 @@
+/// Dealer Sockets
 pub mod dealer;
+/// Publish Sockets
 pub mod publish;
+/// Pull Sockets
 pub mod pull;
+/// Push Sockets
 pub mod push;
+/// Request/Reply Sockets
 pub mod request_reply;
+/// Router Sockets
 pub mod router;
+/// Subscribe Sockets
 pub mod subscribe;
 
 pub use dealer::dealer;

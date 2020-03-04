@@ -87,11 +87,11 @@ macro_rules! impl_as_socket {
     };
 }
 
-/// Implements a `split` method for a Socket wrapping an inner `SenderReceiver`.
 macro_rules! impl_split {
     ($type: ty, $field: ident) => {
         impl $type {
             #[inline]
+            /// Implements a `split` method for the Socket wrapping an inner `SenderReceiver`.
             pub fn split(self) -> ($crate::SharedReceiver, $crate::SharedSender) {
                 self.$field.split()
             }
@@ -99,10 +99,10 @@ macro_rules! impl_split {
     };
 }
 
-/// Implements a `buffered` method for a Socket wrapping an inner `Receiver`.
 macro_rules! impl_buffered {
     ($type: ty, $field: ident) => {
         impl $type {
+            /// Implements a `buffered` method for the Socket wrapping an inner `Receiver`.
             pub fn buffered(self, capacity: usize) -> $crate::BufferedReceiver {
                 self.$field.buffered(capacity)
             }

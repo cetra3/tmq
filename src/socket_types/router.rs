@@ -29,17 +29,23 @@ impl_wrapper_stream!(Router, inner);
 impl_split!(Router, inner);
 
 impl Router {
+    /// Accessor for the `ZMQ_ROUTER_MANDATORY` option.
     pub fn is_router_mandatory(&self) -> Result<bool> {
         Ok(self.get_socket().is_router_mandatory()?)
     }
+
+    /// Setter for the `ZMQ_ROUTER_MANDATORY` option.
     pub fn set_router_mandatory(&self, value: bool) -> Result<()> {
         self.get_socket().set_router_mandatory(value)?;
         Ok(())
     }
 
+    /// Accessor for the `ZMQ_ROUTER_HANDOVER` option.
     pub fn is_router_handover(&self) -> Result<bool> {
         Ok(self.get_socket().is_router_handover()?)
     }
+
+    /// Setter for the `ZMQ_ROUTER_HANDOVER` option.
     pub fn set_router_handover(&self, value: bool) -> Result<()> {
         self.get_socket().set_router_handover(value)?;
         Ok(())
