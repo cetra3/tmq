@@ -88,15 +88,6 @@ async fn receive_hammer() -> Result<()> {
 }
 
 #[tokio::test]
-async fn receive_buffered_hammer() -> Result<()> {
-    let address = generate_tcp_address();
-    let ctx = Context::new();
-    let sock = dealer(&ctx).bind(&address)?;
-    let (rx, _) = sock.split();
-    hammer_receive(rx.buffered(1024), address, SocketType::DEALER).await
-}
-
-#[tokio::test]
 async fn proxy_sequence() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
@@ -164,7 +155,7 @@ async fn proxy_interleaved() -> Result<()> {
 async fn split_echo() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let (rx, tx) = dealer(&ctx).bind(&address)?.split();
+    let (tx, rx) = dealer(&ctx).bind(&address)?.split();
     let count = 10;
 
     let thread = spawn(move || {
@@ -198,7 +189,7 @@ async fn split_echo() -> Result<()> {
 async fn split_send_all() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let (_, mut tx) = dealer(&ctx).connect(&address)?.split();
+    let (mut tx, _) = dealer(&ctx).connect(&address)?.split();
 
     let count = 10_000;
     let thread = spawn(move || {

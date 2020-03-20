@@ -88,15 +88,6 @@ async fn receive_hammer() -> Result<()> {
 }
 
 #[tokio::test]
-async fn receive_buffered_hammer() -> Result<()> {
-    let address = generate_tcp_address();
-    let ctx = Context::new();
-    let sock = router(&ctx).bind(&address)?;
-    let (rx, _) = sock.split();
-    router_receive_hammer(rx.buffered(1024), address).await
-}
-
-#[tokio::test]
 async fn proxy() -> Result<()> {
     let frontend = generate_tcp_address();
     let backend = generate_tcp_address();
@@ -154,8 +145,8 @@ async fn proxy() -> Result<()> {
         .collect::<Vec<JoinHandle<()>>>();
 
     // simulates zmq::proxy
-    let (mut router_rx, mut router_tx) = router.split();
-    let (mut dealer_rx, mut dealer_tx) = dealer.split();
+    let (mut router_tx, mut router_rx) = router.split();
+    let (mut dealer_tx, mut dealer_rx) = dealer.split();
     let mut frontend_fut = router_rx.next();
     let mut backend_fut = dealer_rx.next();
     for _ in 0..(task_count * 2) {
@@ -178,7 +169,7 @@ async fn proxy() -> Result<()> {
         client.join().unwrap();
     }
     for _ in 0..worker_count {
-        dealer_tx.send(vec!["end"]).await?;
+        dealer_tx.send(vec!["end"].into()).await?;
     }
     for worker in workers {
         worker.join().unwrap();

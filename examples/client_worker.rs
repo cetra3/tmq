@@ -70,8 +70,8 @@ async fn worker(ctx: Rc<Context>, worker_id: u64, backend: String) -> Result<(),
 
 /// Simulates zmq::proxy using asynchronous sockets.
 async fn proxy(ctx: Rc<Context>, frontend: String, backend: String) -> tmq::Result<()> {
-    let (mut router_rx, mut router_tx) = router(&ctx).bind(&frontend)?.split();
-    let (mut dealer_rx, mut dealer_tx) = dealer(&ctx).bind(&backend)?.split();
+    let (mut router_tx, mut router_rx) = router(&ctx).bind(&frontend)?.split();
+    let (mut dealer_tx, mut dealer_rx) = dealer(&ctx).bind(&backend)?.split();
 
     let mut frontend_fut = router_rx.next();
     let mut backend_fut = dealer_rx.next();

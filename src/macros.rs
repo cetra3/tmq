@@ -87,18 +87,6 @@ macro_rules! impl_as_socket {
     };
 }
 
-macro_rules! impl_split {
-    ($type: ty, $field: ident) => {
-        impl $type {
-            #[inline]
-            /// Implements a `split` method for the Socket wrapping an inner `SenderReceiver`.
-            pub fn split(self) -> ($crate::SharedReceiver, $crate::SharedSender) {
-                self.$field.split()
-            }
-        }
-    };
-}
-
 macro_rules! impl_buffered {
     ($type: ty, $field: ident) => {
         impl $type {

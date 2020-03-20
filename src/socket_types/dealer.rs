@@ -23,4 +23,3 @@ impl FromZmqSocket<Dealer> for Dealer {
 impl_wrapper!(Dealer, SenderReceiver, inner);
 impl_wrapper_sink!(Dealer, inner);
 impl_wrapper_stream!(Dealer, inner);
-impl_split!(Dealer, inner);
