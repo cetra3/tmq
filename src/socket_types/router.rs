@@ -26,7 +26,6 @@ impl FromZmqSocket<Router> for Router {
 impl_wrapper!(Router, SenderReceiver, inner);
 impl_wrapper_sink!(Router, inner);
 impl_wrapper_stream!(Router, inner);
-impl_split!(Router, inner);
 
 impl Router {
     /// Accessor for the `ZMQ_ROUTER_MANDATORY` option.

@@ -2,10 +2,8 @@ use crate::{
     poll::{ReceiverBuffer, ZmqPoller},
     Multipart,
 };
-use std::rc::Rc;
 
 type Poller = ZmqPoller;
-type PollerShared = Rc<Poller>;
 
 /// Sends multiparts using an owned Poller.
 pub struct Sender {
@@ -71,60 +69,6 @@ impl SenderReceiver {
         Self {
             poller,
             buffer: Default::default(),
-        }
-    }
-    pub fn split(self) -> (SharedReceiver, SharedSender) {
-        let rc = Rc::new(self.poller);
-        (
-            SharedReceiver::new(rc.clone()),
-            SharedSender::new(rc, self.buffer),
-        )
-    }
-}
-
-/// Sends multiparts using a shared Poller.
-pub struct SharedSender {
-    pub(crate) poller: PollerShared,
-    pub(crate) buffer: Multipart,
-}
-impl_as_socket!(SharedSender, poller);
-impl_sink!(SharedSender, buffer, poller);
-
-impl SharedSender {
-    pub(crate) fn new(poller: PollerShared, buffer: Multipart) -> Self {
-        Self { poller, buffer }
-    }
-}
-
-/// Receives multiparts using a shared Poller.
-pub struct SharedReceiver {
-    pub(crate) poller: PollerShared,
-}
-impl_as_socket!(SharedReceiver, poller);
-impl_stream!(SharedReceiver, poller);
-
-impl SharedReceiver {
-    pub(crate) fn new(poller: PollerShared) -> Self {
-        Self { poller }
-    }
-    pub fn buffered(self, capacity: usize) -> SharedBufferedReceiver {
-        SharedBufferedReceiver::new(self.poller, capacity)
-    }
-}
-
-/// Receives buffered multiparts using a shared Poller.
-pub struct SharedBufferedReceiver {
-    pub(crate) poller: PollerShared,
-    pub(crate) buffer: ReceiverBuffer,
-}
-impl_as_socket!(SharedBufferedReceiver, poller);
-impl_buffered_stream!(SharedBufferedReceiver, buffer, poller);
-
-impl SharedBufferedReceiver {
-    pub(crate) fn new(poller: PollerShared, capacity: usize) -> Self {
-        Self {
-            poller,
-            buffer: ReceiverBuffer::new(capacity),
         }
     }
 }
