@@ -8,6 +8,9 @@ repository = "https://github.com/cetra3/tmq"
 readme = "README.md"
 edition = "2018"
 
+[features]
+zmq-vendored = ["zmq/vendored"]
+
 [dependencies]
 bytes = "0.5"
 futures = "0.3"
