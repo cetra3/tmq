@@ -162,4 +162,25 @@ where
     );
     setter!(set_backlog, i32, "Setter for the `ZMQ_BACKLOG` option.");
     setter!(set_identity, &[u8], "Setter for the `ZMQ_IDENTITY` option.");
+
+    setter!(
+        set_tcp_keepalive,
+        i32,
+        "Setter for the `ZMQ_TCP_KEEPALIVE` option."
+    );
+    setter!(
+        set_tcp_keepalive_cnt,
+        i32,
+        "Setter for the `ZMQ_TCP_KEEPALIVE_CNT` option."
+    );
+    setter!(
+        set_tcp_keepalive_idle,
+        i32,
+        "Setter for the `ZMQ_TCP_KEEPALIVE_IDLE` option."
+    );
+    setter!(
+        set_tcp_keepalive_intvl,
+        i32,
+        "Setter for the `ZMQ_TCP_KEEPALIVE_INTVL` option."
+    );
 }
