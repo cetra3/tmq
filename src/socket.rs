@@ -134,7 +134,7 @@ macro_rules! getter {
         fn $name(&self) -> $crate::Result<$retval> {
             self.get_socket().$name().map_err(|e| e.into())
         }
-    }
+    };
 }
 macro_rules! setter {
     ($name: ident, $type: ty) => {
@@ -142,7 +142,7 @@ macro_rules! setter {
         fn $name(&self, value: $type) -> $crate::Result<()> {
             self.get_socket().$name(value).map_err(|e| e.into())
         }
-    }
+    };
 }
 
 impl<T: AsZmqSocket> SocketExt for T {

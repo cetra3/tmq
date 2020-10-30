@@ -3,7 +3,6 @@ use std::task::Context;
 use futures::{ready, task::Poll};
 use mio::Ready;
 use tokio::io::PollEvented;
-use zmq;
 
 use crate::error::TmqError::InterruptedSend;
 use crate::socket::AsZmqSocket;
