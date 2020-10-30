@@ -12,8 +12,7 @@ edition = "2018"
 zmq-vendored = ["zmq/vendored"]
 
 [dependencies]
-bytes = "0.5"
-futures = "0.3"
+futures = { version = "0.3", default-features = false, features = ["alloc"] }
 tokio = { version = "0.2", features = ["io-driver"] }
 mio = "0.6"
 zmq = ">=0.9.2"
@@ -22,7 +21,7 @@ thiserror = "1"
 
 [dev-dependencies]
 tokio = { version = "0.2", features = ["full"] }
-pretty_env_logger = "0.2"
+pretty_env_logger = "0.4"
 rand = "0.7"
 criterion = "0.3"
 
