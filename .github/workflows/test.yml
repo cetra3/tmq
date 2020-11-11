@@ -9,6 +9,38 @@ on: [push, pull_request]
 name: Test
 
 jobs:
+  lint:
+    name: Format & Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+          profile: minimal
+          override: true
+
+      - name: Install ZeroMQ
+        run: |
+          sudo apt update
+          sudo apt install -y --no-install-recommends libzmq3-dev
+
+      - name: Format
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+      - name: Clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: -- -D warnings
+
   test:
     name: Test
     runs-on: ubuntu-latest

@@ -1,5 +1,7 @@
 /// Dealer Sockets
 pub mod dealer;
+/// Pair Sockets
+pub mod pair;
 /// Publish Sockets
 pub mod publish;
 /// Pull Sockets
@@ -12,10 +14,9 @@ pub mod request_reply;
 pub mod router;
 /// Subscribe Sockets
 pub mod subscribe;
-/// Pair Sockets
-pub mod pair;
 
 pub use dealer::dealer;
+pub use pair::pair;
 pub use publish::publish;
 pub use pull::pull;
 pub use push::push;
@@ -23,7 +24,6 @@ pub use request_reply::reply;
 pub use request_reply::request;
 pub use router::router;
 pub use subscribe::subscribe;
-pub use pair::pair;
 
 #[doc(hidden)]
 pub trait FromZmqSocket<T> {
