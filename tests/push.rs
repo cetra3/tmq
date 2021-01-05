@@ -2,7 +2,7 @@ use zmq::{Context, SocketType};
 
 use futures::SinkExt;
 use std::{thread::spawn, time::Duration};
-use tmq::{push, Result, SocketExt};
+use tmq::{push, Result};
 use tokio::time::timeout;
 use utils::{
     generate_tcp_address, msg, send_multipart_repeated, send_multiparts,
@@ -84,10 +84,9 @@ async fn send_hammer() -> Result<()> {
 async fn send_delayed() -> Result<()> {
     let address = generate_tcp_address();
     let ctx = Context::new();
-    let mut sock = push(&ctx).connect(&address)?;
 
     // set send high water mark to a single message
-    sock.set_sndhwm(1).unwrap();
+    let mut sock = push(&ctx).set_sndhwm(1).connect(&address)?;
 
     // send a single message, now the send buffer should be full
     sock.send(vec![msg(b"hello")]).await?;
