@@ -1,43 +1,29 @@
-use std::io;
-
-use mio::{unix::EventedFd, Evented, Poll, PollOpt, Ready, Token};
-
 use crate::Result;
+
+use std::os::unix::io::{AsRawFd, RawFd};
 
 /// Wrapper on top of a ZMQ socket.
 ///
 /// The socket needs to be wrapped to allow various trait implementations.
 pub(crate) struct SocketWrapper {
     pub(crate) socket: zmq::Socket,
+    // This RawFd is held separately because it must be accessible
+    // without error after SocketWrapper initialization, for the AsRawFd trait.
+    fd: RawFd,
 }
 
 impl SocketWrapper {
-    pub fn new(socket: zmq::Socket) -> Self {
-        Self { socket }
+    pub fn new(socket: zmq::Socket) -> Result<Self> {
+        Ok(Self {
+            fd: socket.get_fd()?,
+            socket,
+        })
     }
 }
 
-impl Evented for SocketWrapper {
-    fn register(
-        &self,
-        poll: &Poll,
-        token: Token,
-        interest: Ready,
-        opts: PollOpt,
-    ) -> io::Result<()> {
-        EventedFd(&self.socket.get_fd()?).register(poll, token, interest, opts)
-    }
-    fn reregister(
-        &self,
-        poll: &Poll,
-        token: Token,
-        interest: Ready,
-        opts: PollOpt,
-    ) -> io::Result<()> {
-        EventedFd(&self.socket.get_fd()?).reregister(poll, token, interest, opts)
-    }
-    fn deregister(&self, poll: &Poll) -> io::Result<()> {
-        EventedFd(&self.socket.get_fd()?).deregister(poll)
+impl AsRawFd for SocketWrapper {
+    fn as_raw_fd(&self) -> RawFd {
+        self.fd
     }
 }
 
