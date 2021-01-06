@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use futures::SinkExt;
-use tokio::time::delay_for;
+use tokio::time::sleep;
 
 use log::info;
 
@@ -26,6 +26,6 @@ async fn main() -> Result<()> {
         info!("Push: {}", message);
         let multipart = vec![message.as_bytes()];
         socket.send(multipart).await?;
-        delay_for(Duration::from_millis(1000)).await;
+        sleep(Duration::from_millis(1000)).await;
     }
 }

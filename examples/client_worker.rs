@@ -17,7 +17,7 @@ use futures::{future, SinkExt, StreamExt};
 use rand::Rng;
 use std::{error::Error, rc::Rc, time::Duration};
 use tmq::{dealer, router, Context, Multipart};
-use tokio::time::delay_for;
+use tokio::time::sleep;
 
 async fn client(ctx: Rc<Context>, client_id: u64, frontend: String) -> tmq::Result<()> {
     let mut sock = dealer(&ctx).connect(&frontend)?;
@@ -38,7 +38,7 @@ async fn client(ctx: Rc<Context>, client_id: u64, frontend: String) -> tmq::Resu
         assert_eq!(expected, response);
 
         let sleep_time = rng.gen_range(200, 1000);
-        delay_for(Duration::from_millis(sleep_time)).await;
+        sleep(Duration::from_millis(sleep_time)).await;
         request_id += 1;
     }
 }
@@ -61,7 +61,7 @@ async fn worker(ctx: Rc<Context>, worker_id: u64, backend: String) -> Result<(),
 
         // simulate work
         let sleep_time = rng.gen_range(100, 3000);
-        delay_for(Duration::from_millis(sleep_time)).await;
+        sleep(Duration::from_millis(sleep_time)).await;
 
         let response = vec![identity, request_id, client_id, "response".into()];
         sock.send(response).await?;
@@ -100,8 +100,7 @@ fn main() -> tmq::Result<()> {
     let backend = "tcp://127.0.0.1:5556".to_string();
     let ctx = Rc::new(Context::new());
 
-    let mut runtime = tokio::runtime::Builder::new()
-        .basic_scheduler()
+    let mut runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()?;
     let tasks = tokio::task::LocalSet::new();

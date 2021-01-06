@@ -1,25 +1,22 @@
-use std::task::Context;
-
-use futures::{ready, task::Poll};
-use mio::Ready;
-use tokio::io::PollEvented;
+use futures::ready;
 
 use crate::error::TmqError::InterruptedSend;
-use crate::socket::AsZmqSocket;
-use crate::{socket::SocketWrapper, Multipart, Result};
-use std::{collections::VecDeque, ops::Deref};
+use crate::socket::{AsZmqSocket, SocketWrapper};
+use crate::{Multipart, Result};
+use std::{
+    collections::VecDeque,
+    task::{Context, Poll},
+};
+use tokio::io::unix::AsyncFd;
 use zmq::Socket;
 
 /// Implements functions for asynchronous reading and writing of multipart messages.
-///
-/// Uses a wrapped ZMQ socket. It needs to use a distinct inner type because
-/// [`tokio::io::PollEvented`] requires a [`mio::Evented`] parameter.
-pub(crate) struct ZmqPoller(PollEvented<SocketWrapper>);
+pub(crate) struct ZmqPoller(AsyncFd<SocketWrapper>);
 
 impl ZmqPoller {
     #[inline]
     pub(crate) fn from_zmq_socket(socket: zmq::Socket) -> Result<Self> {
-        Ok(ZmqPoller(PollEvented::new(SocketWrapper::new(socket))?))
+        Ok(Self(AsyncFd::new(SocketWrapper::new(socket)?)?))
     }
 }
 
@@ -65,7 +62,7 @@ impl ZmqPoller {
                         if !buffer.is_empty() {
                             read_buffer.push_back(buffer);
                         }
-                        self.clear_read_ready(cx, Ready::readable())?;
+                        self.clear_read_ready(cx)?;
 
                         if read_buffer.is_empty() {
                             break Poll::Pending;
@@ -105,7 +102,7 @@ impl ZmqPoller {
                 Err(zmq::Error::EAGAIN) => {
                     assert!(buffer.is_empty());
                     log::warn!("EAGAIN during first message read");
-                    self.clear_read_ready(cx, Ready::readable())?;
+                    self.clear_read_ready(cx)?;
                     return Poll::Pending;
                 }
                 Err(e) => return Poll::Ready(Err(e.into())),
@@ -183,17 +180,16 @@ impl ZmqPoller {
         if events.contains(event) {
             Poll::Ready(Ok(()))
         } else {
-            self.clear_read_ready(cx, Ready::readable())?;
+            self.clear_read_ready(cx)?;
             Poll::Pending
         }
     }
-}
 
-impl Deref for ZmqPoller {
-    type Target = PollEvented<SocketWrapper>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+    fn clear_read_ready(&self, cx: &mut Context<'_>) -> Result<()> {
+        if let Poll::Ready(mut guard) = self.0.poll_read_ready(cx)? {
+            guard.clear_ready();
+        }
+        Ok(())
     }
 }
 

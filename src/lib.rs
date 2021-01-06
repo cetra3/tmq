@@ -25,7 +25,7 @@
 //! use log::info;
 //! use std::env;
 //! use std::time::Duration;
-//! use tokio::time::delay_for;
+//! use tokio::time::sleep;
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<()> {
@@ -41,7 +41,7 @@
 //!             .send(vec!["topic", &format!("Broadcast #{}", i)])
 //!             .await?;
 //!
-//!         delay_for(Duration::from_secs(1)).await;
+//!         sleep(Duration::from_secs(1)).await;
 //!     }
 //! }
 //! ```

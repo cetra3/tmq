@@ -4,7 +4,7 @@ use futures::SinkExt;
 use log::info;
 use std::env;
 use std::time::Duration;
-use tokio::time::delay_for;
+use tokio::time::sleep;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -25,6 +25,6 @@ async fn main() -> Result<()> {
         socket
             .send(vec![b"topic" as &[u8], message.as_bytes()])
             .await?;
-        delay_for(Duration::from_secs(1)).await;
+        sleep(Duration::from_secs(1)).await;
     }
 }
