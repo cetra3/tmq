@@ -5,7 +5,7 @@ use std::{
     sync::{Arc, Barrier},
     thread::spawn,
 };
-use tmq::{pair, Result, SocketExt};
+use tmq::{pair, Result};
 use utils::{check_receive_multiparts, generate_tcp_address, hammer_receive, sync_send_multiparts};
 
 mod utils;
@@ -77,8 +77,7 @@ async fn receive_delayed() -> Result<()> {
     barrier.wait();
 
     let ctx = Context::new();
-    let mut sock = pair(&ctx).bind(&address_recv)?;
-    sock.set_rcvhwm(1)?;
+    let mut sock = pair(&ctx).set_rcvhwm(1).bind(&address_recv)?;
 
     for _ in 0..3 {
         sock.next().await.unwrap()?;
