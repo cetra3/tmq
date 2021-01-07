@@ -188,6 +188,7 @@ impl ZmqPoller {
     fn clear_read_ready(&self, cx: &mut Context<'_>) -> Result<()> {
         if let Poll::Ready(mut guard) = self.0.poll_read_ready(cx)? {
             guard.clear_ready();
+            cx.waker().wake_by_ref();
         }
         Ok(())
     }
