@@ -88,6 +88,54 @@ async fn receive_hammer() -> Result<()> {
 }
 
 #[tokio::test]
+async fn echo() -> Result<()> {
+    let count: u64 = 1000;
+    let client_count: u64 = 4;
+
+    let mut tasks = vec![];
+
+    let addr = generate_tcp_address();
+    let ctx = Context::new();
+    let mut router = router(&ctx).bind(&addr).unwrap();
+
+    tasks.push(tokio::spawn(async move {
+        for _ in 0..(count * client_count) {
+            let response = router.next().await.unwrap().unwrap();
+            router.send(response).await.unwrap();
+        }
+    }));
+
+    for client_id in 0..client_count {
+        let ctx = Context::new();
+        let mut dealer = dealer(&ctx).connect(&addr).unwrap();
+
+        tasks.push(tokio::spawn(async move {
+            let client_id = client_id.to_string();
+
+            for index in 0..count {
+                let msg_index = index.to_string();
+                let msg = vec!["hello", "from", "client", &client_id, &msg_index];
+                dealer.send(msg.clone()).await.unwrap();
+                let response = dealer.next().await.unwrap().unwrap();
+                assert_eq!(
+                    msg,
+                    response
+                        .iter()
+                        .map(|i| std::str::from_utf8(&*i).unwrap())
+                        .collect::<Vec<&str>>()
+                );
+            }
+        }));
+    }
+
+    for res in futures::future::join_all(tasks).await {
+        res.unwrap();
+    }
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn proxy() -> Result<()> {
     let frontend = generate_tcp_address();
     let backend = generate_tcp_address();
