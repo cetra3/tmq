@@ -183,4 +183,14 @@ where
         i32,
         "Setter for the `ZMQ_TCP_KEEPALIVE_INTVL` option."
     );
+    setter!(
+        set_rcvtimeo,
+        i32,
+        "Setter for the `ZMQ_RCVTIMEO` option."
+    );
+    setter!(
+        set_sndtimeo,
+        i32,
+        "Setter for the `ZMQ_SNDTIMEO` option."
+    );
 }
