@@ -5,23 +5,19 @@ macro_rules! setter {
     ($name: ident, $type: ty, $doc: expr) => {
         #[doc=$doc]
         pub fn $name(mut self, value: $type) -> Self {
-
             if self.error.is_some() {
-                return self
+                return self;
             }
 
-            if let Some(ref socket) =  self.socket {
-
+            if let Some(ref socket) = self.socket {
                 if let Err(err) = socket.$name(value) {
                     self.error = Some(err.into());
                 }
-
             }
 
             self
-
         }
-    }
+    };
 }
 
 /// Builder which provides [`bind`] and [`connect`] methods to build a corresponding ZMQ socket as per the standard functions
@@ -183,14 +179,6 @@ where
         i32,
         "Setter for the `ZMQ_TCP_KEEPALIVE_INTVL` option."
     );
-    setter!(
-        set_rcvtimeo,
-        i32,
-        "Setter for the `ZMQ_RCVTIMEO` option."
-    );
-    setter!(
-        set_sndtimeo,
-        i32,
-        "Setter for the `ZMQ_SNDTIMEO` option."
-    );
+    setter!(set_rcvtimeo, i32, "Setter for the `ZMQ_RCVTIMEO` option.");
+    setter!(set_sndtimeo, i32, "Setter for the `ZMQ_SNDTIMEO` option.");
 }
