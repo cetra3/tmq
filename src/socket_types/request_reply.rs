@@ -1,3 +1,4 @@
+use tokio::time::{Duration, timeout};
 use crate::{poll::ZmqPoller, FromZmqSocket, Multipart, SocketBuilder};
 use zmq::{self, Context as ZmqContext};
 
@@ -27,6 +28,21 @@ impl RequestSender {
         futures::future::poll_fn(|cx| self.inner.multipart_flush(cx, &mut msg)).await?;
         Ok(RequestReceiver { inner: self.inner })
     }
+
+    /// Send a multipart message and return a `RequestReceiver`. The function will block for at
+    /// most `t` milliseconds and return an error if no message was received then.
+    pub async fn send_timeout(self, mut msg: Multipart, t: u64) -> crate::Result<RequestReceiver> {
+        let timeout_msg = timeout(Duration::from_millis(t), futures::future::poll_fn(|cx| self.inner.multipart_flush(cx, &mut msg)))
+            .await;
+
+        match timeout_msg {
+            Ok(_) => {
+                Ok(RequestReceiver { inner: self.inner })
+            },
+            Err(_) =>
+                Err(crate::TmqError::Io(std::io::Error::from(std::io::ErrorKind::TimedOut)))
+        }
+    }
 }
 
 /// Create a builder for a REP socket
@@ -53,5 +69,18 @@ impl RequestReceiver {
     pub async fn recv(self) -> crate::Result<(Multipart, RequestSender)> {
         let msg = futures::future::poll_fn(|cx| self.inner.multipart_recv(cx)).await?;
         Ok((msg, RequestSender { inner: self.inner }))
+    }
+
+    /// Receive a multipart message and return a `RequestSender`. The function will block for at
+    /// most `t` milliseconds and return an error if no message was received then.
+    pub async fn recv_timeout(self, t: u64) -> crate::Result<(Multipart, RequestSender)> {
+        match timeout(Duration::from_millis(t), futures::future::poll_fn(|cx| self.inner.multipart_recv(cx)))
+            .await {
+            Ok(msg) => {
+                Ok((msg?, RequestSender { inner: self.inner }))
+            },
+            Err(_) =>
+                Err(crate::TmqError::Io(std::io::Error::from(std::io::ErrorKind::TimedOut)))
+        }
     }
 }
