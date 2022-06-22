@@ -79,7 +79,7 @@ impl From<Message> for Multipart {
 }
 
 impl FromIterator<Message> for Multipart {
-    fn from_iter<T: IntoIterator<Item=Message>>(iter: T) -> Self {
+    fn from_iter<T: IntoIterator<Item = Message>>(iter: T) -> Self {
         Self(iter.into_iter().collect())
     }
 }
