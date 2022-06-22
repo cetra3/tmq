@@ -1,5 +1,7 @@
 use std::{
-    collections::VecDeque,
+    collections::vec_deque::Iter,
+    collections::vec_deque::IterMut,
+    collections::vec_deque::VecDeque,
     iter::FromIterator,
     ops::{Index, IndexMut},
 };
@@ -51,8 +53,14 @@ impl Multipart {
 
     /// Creates an iterator which iterates through the messages of this multipart.
     #[inline]
-    pub fn iter(&self) -> impl Iterator<Item = &Message> {
+    pub fn iter(&self) -> Iter<Message> {
         self.0.iter()
+    }
+
+    /// Creates an mutable iterator which iterates through the messages of this multipart.
+    #[inline]
+    pub fn iter_mut(&mut self) -> IterMut<Message> {
+        self.0.iter_mut()
     }
 }
 
@@ -71,7 +79,7 @@ impl From<Message> for Multipart {
 }
 
 impl FromIterator<Message> for Multipart {
-    fn from_iter<T: IntoIterator<Item = Message>>(iter: T) -> Self {
+    fn from_iter<T: IntoIterator<Item=Message>>(iter: T) -> Self {
         Self(iter.into_iter().collect())
     }
 }
