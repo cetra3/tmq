@@ -54,6 +54,12 @@ impl Multipart {
     pub fn iter(&self) -> impl Iterator<Item = &Message> {
         self.0.iter()
     }
+
+    /// Creates an iterator mut which iterates through the mutable messages of this multipart.
+    #[inline]
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Message> {
+        self.0.iter_mut()
+    }
 }
 
 impl<T: Into<Message>> From<Vec<T>> for Multipart {
