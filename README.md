@@ -2,6 +2,17 @@
 
 This crate bridges Tokio and ZeroMQ to allow for ZeroMQ in the async world.
 
+[![Crates.io][crates-badge]][crates-url]
+[![Docs.rs][docs-badge]][docs-url]
+[![MIT licensed][mit-badge]][mit-url]
+
+[crates-badge]: https://img.shields.io/crates/v/tmq.svg
+[crates-url]: https://crates.io/crates/tmq
+[mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
+[mit-url]: https://choosealicense.com/licenses/mit/
+[docs-badge]: https://img.shields.io/docsrs/tmq.svg
+[docs-url]: https://docs.rs/crate/tmq/latest
+
 ## Changelog
 
 ### 0.3.0 - Tokio 1.0 Support
