@@ -15,6 +15,10 @@ This crate bridges Tokio and ZeroMQ to allow for ZeroMQ in the async world.
 
 ## Changelog
 
+### 0.3.1 - Iter Mut for Multipart
+
+Adds an `iter_mut()` method to `Multipart`
+
 ### 0.3.0 - Tokio 1.0 Support
 
 0.3.0 adds support for tokio 1.0 thanks to [YushiOMOTE](https://github.com/YushiOMOTE)!

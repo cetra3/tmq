@@ -10,7 +10,7 @@ use zmq::Message;
 /// It is implemented with a VecDeque to allow efficient popping from the beginning.
 /// This is useful both for async Read/Write implementations and for consuming the multipart.
 #[derive(Debug, Default, Eq)]
-pub struct Multipart(VecDeque<Message>);
+pub struct Multipart(pub VecDeque<Message>);
 
 impl Multipart {
     /// Returns `true` if the multipart contains no messages.

@@ -176,7 +176,7 @@ async fn split_echo() -> Result<()> {
 
     rx.take(count)
         .forward(tx)
-        .map_err(|e| panic!(e))
+        .map_err(|e| panic!("{}", e))
         .map(|_| ())
         .await;
 
