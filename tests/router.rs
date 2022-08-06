@@ -1,5 +1,5 @@
 use futures::{SinkExt, StreamExt};
-use zmq::{Context, SocketType};
+use zmq2::{Context, SocketType};
 
 use tmq::{dealer, router, Multipart, Result};
 
@@ -192,7 +192,7 @@ async fn proxy() -> Result<()> {
         })
         .collect::<Vec<JoinHandle<()>>>();
 
-    // simulates zmq::proxy
+    // simulates zmq2::proxy
     let (mut router_tx, mut router_rx) = router.split();
     let (mut dealer_tx, mut dealer_rx) = dealer.split();
     let mut frontend_fut = router_rx.next();

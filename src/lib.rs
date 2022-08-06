@@ -49,7 +49,7 @@
 /// Shortcut for [`Result<T, tmq::TmqError>`].
 pub type Result<T> = std::result::Result<T, TmqError>;
 
-pub use zmq::{Context, Message};
+pub use zmq2::{Context, Message};
 
 /// Internal re-exports
 pub use error::TmqError;

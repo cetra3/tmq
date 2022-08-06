@@ -3,7 +3,7 @@
 use std::thread::{spawn, JoinHandle};
 
 use futures::{Sink, SinkExt, Stream};
-use zmq::{Context, SocketType};
+use zmq2::{Context, SocketType};
 
 use futures::StreamExt;
 use rand::Rng;
@@ -11,7 +11,7 @@ use std::sync::{Arc, Barrier};
 use tmq::{Multipart, Result, TmqError};
 
 /// Synchronous send and receive functions running in a separate thread.
-pub fn sync_send_multiparts<T: Into<zmq::Message> + Send + 'static>(
+pub fn sync_send_multiparts<T: Into<zmq2::Message> + Send + 'static>(
     address: String,
     socket_type: SocketType,
     multipart: Vec<Vec<T>>,
@@ -27,7 +27,7 @@ pub fn sync_send_multiparts<T: Into<zmq::Message> + Send + 'static>(
         }
     })
 }
-pub fn sync_send_multipart_repeated<T: Into<zmq::Message> + Clone + 'static + Send>(
+pub fn sync_send_multipart_repeated<T: Into<zmq2::Message> + Clone + 'static + Send>(
     address: String,
     socket_type: SocketType,
     multipart: Vec<T>,
@@ -41,12 +41,12 @@ pub fn sync_send_multipart_repeated<T: Into<zmq::Message> + Clone + 'static + Se
             let msg = multipart
                 .clone()
                 .into_iter()
-                .map(|i| Into::<zmq::Message>::into(i));
+                .map(|i| Into::<zmq2::Message>::into(i));
             socket.send_multipart(msg, 0).unwrap();
         }
     })
 }
-pub fn sync_receive_multiparts<T: Into<zmq::Message> + Send + 'static>(
+pub fn sync_receive_multiparts<T: Into<zmq2::Message> + Send + 'static>(
     address: String,
     socket_type: SocketType,
     expected: Vec<Vec<T>>,
@@ -69,7 +69,7 @@ pub fn sync_receive_multiparts<T: Into<zmq::Message> + Send + 'static>(
         }
     })
 }
-pub fn sync_receive_multipart_repeated<T: Into<zmq::Message> + Send + 'static>(
+pub fn sync_receive_multipart_repeated<T: Into<zmq2::Message> + Send + 'static>(
     address: String,
     socket_type: SocketType,
     multipart: Vec<T>,
@@ -92,7 +92,7 @@ pub fn sync_receive_multipart_repeated<T: Into<zmq::Message> + Send + 'static>(
         }
     })
 }
-pub fn sync_receive_subscribe<T: Into<zmq::Message> + Send + 'static>(
+pub fn sync_receive_subscribe<T: Into<zmq2::Message> + Send + 'static>(
     address: String,
     topic: String,
     expected: Vec<Vec<T>>,
@@ -101,7 +101,7 @@ pub fn sync_receive_subscribe<T: Into<zmq::Message> + Send + 'static>(
     let handle = barrier.clone();
     (
         spawn(move || {
-            let socket = Context::new().socket(zmq::SocketType::SUB).unwrap();
+            let socket = Context::new().socket(zmq2::SocketType::SUB).unwrap();
             socket.connect(&address).unwrap();
             socket.set_subscribe(topic.as_bytes()).unwrap();
             handle.wait();
@@ -137,7 +137,7 @@ pub fn sync_echo(address: String, socket_type: SocketType, count: u64) -> JoinHa
 /// Functions for sending and receiving using the asynchronous sockets.
 pub async fn check_receive_multiparts<
     S: Stream<Item = Result<Multipart>> + Unpin,
-    T: Into<zmq::Message>,
+    T: Into<zmq2::Message>,
 >(
     mut stream: S,
     expected: Vec<Vec<T>>,
@@ -156,7 +156,7 @@ pub async fn check_receive_multiparts<
 }
 pub async fn receive_multipart_repeated<
     S: Stream<Item = Result<Multipart>> + Unpin,
-    T: Into<zmq::Message>,
+    T: Into<zmq2::Message>,
 >(
     mut stream: S,
     expected: Vec<T>,
@@ -174,7 +174,7 @@ pub async fn receive_multipart_repeated<
 }
 pub async fn send_multiparts<
     S: Sink<Multipart, Error = TmqError> + Unpin,
-    T: Into<zmq::Message>,
+    T: Into<zmq2::Message>,
 >(
     mut sink: S,
     messages: Vec<Vec<T>>,
@@ -188,7 +188,7 @@ pub async fn send_multiparts<
 }
 pub async fn send_multipart_repeated<
     S: Sink<Multipart, Error = TmqError> + Unpin,
-    T: Into<zmq::Message> + Clone,
+    T: Into<zmq2::Message> + Clone,
 >(
     mut sink: S,
     message: Vec<T>,
@@ -229,6 +229,6 @@ pub fn generate_tcp_address() -> String {
     format!("tcp://127.0.0.1:{}", port)
 }
 
-pub fn msg(bytes: &[u8]) -> zmq::Message {
-    zmq::Message::from(bytes)
+pub fn msg(bytes: &[u8]) -> zmq2::Message {
+    zmq2::Message::from(bytes)
 }

@@ -11,7 +11,7 @@
 //! All clients, workers and the proxy run on the same thread.
 //!
 //! The proxy is implemented using asynchronous sockets as an example of using `futures::select`.
-//! A more performant solution would be to use `zmq::proxy`, which is designed for this usage.
+//! A more performant solution would be to use `zmq2::proxy`, which is designed for this usage.
 
 use futures::{future, SinkExt, StreamExt};
 use rand::Rng;
@@ -68,7 +68,7 @@ async fn worker(ctx: Rc<Context>, worker_id: u64, backend: String) -> Result<(),
     }
 }
 
-/// Simulates zmq::proxy using asynchronous sockets.
+/// Simulates zmq2::proxy using asynchronous sockets.
 async fn proxy(ctx: Rc<Context>, frontend: String, backend: String) -> tmq::Result<()> {
     let (mut router_tx, mut router_rx) = router(&ctx).bind(&frontend)?.split();
     let (mut dealer_tx, mut dealer_rx) = dealer(&ctx).bind(&backend)?.split();

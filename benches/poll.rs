@@ -6,7 +6,7 @@ use criterion::Criterion;
 use futures::{SinkExt, StreamExt};
 use std::thread::spawn;
 use tmq::{pull, push, SocketExt};
-use zmq::SocketType;
+use zmq2::SocketType;
 
 fn poll_benchmark(c: &mut Criterion) {
     c.bench_function("receive", |b| {
@@ -16,12 +16,12 @@ fn poll_benchmark(c: &mut Criterion) {
             .build()
             .unwrap();
 
-        let ctx = zmq::Context::new();
+        let ctx = zmq2::Context::new();
         let sender = ctx.socket(SocketType::PUSH).unwrap();
         sender.set_linger(0).unwrap();
         sender.connect(address).unwrap();
 
-        let ctx2 = zmq::Context::new();
+        let ctx2 = zmq2::Context::new();
         let mut socket = {
             let _guard = runtime.enter();
             pull(&ctx2).bind(address).unwrap()
@@ -31,7 +31,7 @@ fn poll_benchmark(c: &mut Criterion) {
             || {
                 sender
                     .send_multipart(
-                        vec![zmq::Message::from("hello"), zmq::Message::from("world")].into_iter(),
+                        vec![zmq2::Message::from("world")].into_iter(),
                         0,
                     )
                     .unwrap();
@@ -50,7 +50,7 @@ fn poll_benchmark(c: &mut Criterion) {
             .unwrap();
 
         let thread = spawn(move || {
-            let ctx = zmq::Context::new();
+            let ctx = zmq2::Context::new();
             let receiver = ctx.socket(SocketType::PULL).unwrap();
             receiver.bind(address).unwrap();
 
@@ -69,7 +69,7 @@ fn poll_benchmark(c: &mut Criterion) {
             }
         });
 
-        let ctx = zmq::Context::new();
+        let ctx = zmq2::Context::new();
         let mut socket = {
             let _guard = runtime.enter();
             push(&ctx).connect(address).unwrap()
@@ -78,7 +78,7 @@ fn poll_benchmark(c: &mut Criterion) {
 
         let mut sent = 0;
         b.iter_with_setup(
-            || vec![zmq::Message::from("hello"), zmq::Message::from("world")],
+            || vec![zmq2::Message::from("hello"), zmq2::Message::from("world")],
             |msg| {
                 runtime.block_on(socket.send(msg)).unwrap();
                 sent += 1;
@@ -86,7 +86,7 @@ fn poll_benchmark(c: &mut Criterion) {
         );
 
         runtime
-            .block_on(socket.send(vec![zmq::Message::from(&sent.to_string())]))
+            .block_on(socket.send(vec![zmq2::Message::from(&sent.to_string())]))
             .unwrap();
         thread.join().unwrap();
     });

@@ -1,4 +1,4 @@
-use zmq::{self, Context as ZmqContext};
+use zmq2::{self, Context as ZmqContext};
 
 use crate::{poll::ZmqPoller, FromZmqSocket, Sender, SocketBuilder};
 
@@ -34,7 +34,7 @@ use crate::{poll::ZmqPoller, FromZmqSocket, Sender, SocketBuilder};
 /// }
 /// ```
 pub fn publish(context: &ZmqContext) -> SocketBuilder<Publish> {
-    SocketBuilder::new(context, zmq::SocketType::PUB)
+    SocketBuilder::new(context, zmq2::SocketType::PUB)
 }
 
 /// Asynchronous PUB socket.
@@ -43,7 +43,7 @@ pub struct Publish {
 }
 
 impl FromZmqSocket<Publish> for Publish {
-    fn from_zmq_socket(socket: zmq::Socket) -> crate::Result<Self> {
+    fn from_zmq_socket(socket: zmq2::Socket) -> crate::Result<Self> {
         Ok(Self {
             inner: Sender::new(ZmqPoller::from_zmq_socket(socket)?),
         })

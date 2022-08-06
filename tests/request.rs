@@ -1,4 +1,4 @@
-use zmq::{Context, SocketType};
+use zmq2::{Context, SocketType};
 
 use tmq::{request, Multipart, Result};
 use utils::{generate_tcp_address, msg, sync_echo};

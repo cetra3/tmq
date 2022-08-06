@@ -1,6 +1,6 @@
 use std::time::Duration;
 use tmq::{publish, Result};
-use zmq::Context;
+use zmq2::Context;
 
 use utils::{generate_tcp_address, send_multiparts, sync_receive_subscribe};
 

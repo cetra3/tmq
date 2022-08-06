@@ -3,7 +3,7 @@ use std::{
     iter::FromIterator,
     ops::{Index, IndexMut},
 };
-use zmq::Message;
+use zmq2::Message;
 
 /// ZMQ multipart which holds individual messages.
 ///

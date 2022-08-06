@@ -8,14 +8,14 @@ use std::{
     task::{Context, Poll},
 };
 use tokio::io::unix::AsyncFd;
-use zmq::Socket;
+use zmq2::Socket;
 
 /// Implements functions for asynchronous reading and writing of multipart messages.
 pub(crate) struct ZmqPoller(AsyncFd<SocketWrapper>);
 
 impl ZmqPoller {
     #[inline]
-    pub(crate) fn from_zmq_socket(socket: zmq::Socket) -> Result<Self> {
+    pub(crate) fn from_zmq_socket(socket: zmq2::Socket) -> Result<Self> {
         Ok(Self(AsyncFd::new(SocketWrapper::new(socket)?)?))
     }
 }
@@ -44,8 +44,8 @@ impl ZmqPoller {
 
             let mut buffer = Multipart::default();
             loop {
-                let mut msg = zmq::Message::new();
-                match self.get_socket().recv(&mut msg, zmq::DONTWAIT) {
+                let mut msg = zmq2::Message::new();
+                match self.get_socket().recv(&mut msg, zmq2::DONTWAIT) {
                     Ok(_) => {
                         let more = msg.get_more();
                         buffer.push_back(msg);
@@ -58,7 +58,7 @@ impl ZmqPoller {
                             buffer = Multipart::default();
                         }
                     }
-                    Err(zmq::Error::EAGAIN) => {
+                    Err(zmq2::Error::EAGAIN) => {
                         if !buffer.is_empty() {
                             read_buffer.push_back(buffer);
                         }
@@ -90,8 +90,8 @@ impl ZmqPoller {
 
         let mut buffer = Multipart::default();
         loop {
-            let mut msg = zmq::Message::new();
-            match self.get_socket().recv(&mut msg, zmq::DONTWAIT) {
+            let mut msg = zmq2::Message::new();
+            match self.get_socket().recv(&mut msg, zmq2::DONTWAIT) {
                 Ok(_) => {
                     let more = msg.get_more();
                     buffer.push_back(msg);
@@ -99,7 +99,7 @@ impl ZmqPoller {
                         break;
                     }
                 }
-                Err(zmq::Error::EAGAIN) => {
+                Err(zmq2::Error::EAGAIN) => {
                     assert!(buffer.is_empty());
                     log::warn!("EAGAIN during first message read");
                     self.clear_read_ready(cx)?;
@@ -123,14 +123,14 @@ impl ZmqPoller {
         let len = buffer.len();
 
         while let Some(msg) = buffer.pop_front() {
-            let mut flags = zmq::DONTWAIT;
+            let mut flags = zmq2::DONTWAIT;
             if !buffer.is_empty() {
-                flags |= zmq::SNDMORE;
+                flags |= zmq2::SNDMORE;
             }
 
             match self.get_socket().send(&*msg, flags) {
                 Ok(_) => {}
-                Err(zmq::Error::EAGAIN) => {
+                Err(zmq2::Error::EAGAIN) => {
                     buffer.push_front(msg);
 
                     // If this was not the first message, we return a special error.
@@ -166,16 +166,16 @@ impl ZmqPoller {
     /// Returns `Poll::Ready(Ok(()))` if the given ZMQ socket is ready for writing.
     /// Returns `Poll::Pending` and schedules a wakeup on the next event for the socket otherwise.
     pub(crate) fn multipart_poll_write_ready(&self, cx: &mut Context<'_>) -> Poll<Result<()>> {
-        self.multipart_poll(cx, zmq::POLLOUT)
+        self.multipart_poll(cx, zmq2::POLLOUT)
     }
 
     /// Returns `Poll::Ready(Ok(()))` if the given ZMQ socket is ready for reading.
     /// Returns `Poll::Pending` and schedules a wakeup on the next event for the socket otherwise.
     pub(crate) fn multipart_poll_read_ready(&self, cx: &mut Context<'_>) -> Poll<Result<()>> {
-        self.multipart_poll(cx, zmq::POLLIN)
+        self.multipart_poll(cx, zmq2::POLLIN)
     }
 
-    fn multipart_poll(&self, cx: &mut Context<'_>, event: zmq::PollEvents) -> Poll<Result<()>> {
+    fn multipart_poll(&self, cx: &mut Context<'_>, event: zmq2::PollEvents) -> Poll<Result<()>> {
         let events = self.get_socket().get_events()?;
         if events.contains(event) {
             Poll::Ready(Ok(()))

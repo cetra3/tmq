@@ -27,5 +27,5 @@ pub use subscribe::subscribe;
 
 #[doc(hidden)]
 pub trait FromZmqSocket<T> {
-    fn from_zmq_socket(socket: zmq::Socket) -> crate::Result<T>;
+    fn from_zmq_socket(socket: zmq2::Socket) -> crate::Result<T>;
 }

@@ -1,9 +1,9 @@
 use crate::{poll::ZmqPoller, FromZmqSocket, Multipart, SocketBuilder};
-use zmq::{self, Context as ZmqContext};
+use zmq2::{self, Context as ZmqContext};
 
 /// Create a builder for a REQ socket
 pub fn request(context: &ZmqContext) -> SocketBuilder<RequestSender> {
-    SocketBuilder::new(context, zmq::SocketType::REQ)
+    SocketBuilder::new(context, zmq2::SocketType::REQ)
 }
 
 /// A REQ Socket returned from the `request` fn
@@ -12,7 +12,7 @@ pub struct RequestSender {
 }
 
 impl FromZmqSocket<RequestSender> for RequestSender {
-    fn from_zmq_socket(socket: zmq::Socket) -> crate::Result<Self> {
+    fn from_zmq_socket(socket: zmq2::Socket) -> crate::Result<Self> {
         Ok(Self {
             inner: ZmqPoller::from_zmq_socket(socket)?,
         })
@@ -31,7 +31,7 @@ impl RequestSender {
 
 /// Create a builder for a REP socket
 pub fn reply(context: &ZmqContext) -> SocketBuilder<RequestReceiver> {
-    SocketBuilder::new(context, zmq::SocketType::REP)
+    SocketBuilder::new(context, zmq2::SocketType::REP)
 }
 /// A `RequestReceiver` is returned After sending a message
 pub struct RequestReceiver {
@@ -39,7 +39,7 @@ pub struct RequestReceiver {
 }
 
 impl FromZmqSocket<RequestReceiver> for RequestReceiver {
-    fn from_zmq_socket(socket: zmq::Socket) -> crate::Result<Self> {
+    fn from_zmq_socket(socket: zmq2::Socket) -> crate::Result<Self> {
         Ok(Self {
             inner: ZmqPoller::from_zmq_socket(socket)?,
         })

@@ -1,7 +1,7 @@
 use std::thread::{spawn, JoinHandle};
 use tmq::{reply, Result};
 use utils::generate_tcp_address;
-use zmq::Context;
+use zmq2::Context;
 
 mod utils;
 
@@ -49,7 +49,7 @@ async fn hammer_reply() -> Result<()> {
 
 pub fn sync_requester(address: String, count: u64, part2: &'static str) -> JoinHandle<()> {
     spawn(move || {
-        let socket = Context::new().socket(zmq::SocketType::REQ).unwrap();
+        let socket = Context::new().socket(zmq2::SocketType::REQ).unwrap();
         socket.connect(&address).unwrap();
 
         for i in 0..count {

@@ -6,14 +6,14 @@ use std::os::unix::io::{AsRawFd, RawFd};
 ///
 /// The socket needs to be wrapped to allow various trait implementations.
 pub(crate) struct SocketWrapper {
-    pub(crate) socket: zmq::Socket,
+    pub(crate) socket: zmq2::Socket,
     // This RawFd is held separately because it must be accessible
     // without error after SocketWrapper initialization, for the AsRawFd trait.
     fd: RawFd,
 }
 
 impl SocketWrapper {
-    pub fn new(socket: zmq::Socket) -> Result<Self> {
+    pub fn new(socket: zmq2::Socket) -> Result<Self> {
         Ok(Self {
             fd: socket.get_fd()?,
             socket,
@@ -30,7 +30,7 @@ impl AsRawFd for SocketWrapper {
 /// Trait for various ZMQ socket wrappers.
 pub trait AsZmqSocket {
     /// Return a reference to the inner ZMQ socket.
-    fn get_socket(&self) -> &zmq::Socket;
+    fn get_socket(&self) -> &zmq2::Socket;
 }
 
 /// Trait which defines configuration functions for ZMQ sockets.

@@ -9,12 +9,13 @@ readme = "README.md"
 edition = "2018"
 
 [features]
-zmq-vendored = ["zmq/vendored"]
+# zmq2-vendored = ["zmq2/vendored"]
 
 [dependencies]
 futures = { version = "0.3", default-features = false, features = ["alloc"] }
 tokio = { version = "1.0", features = ["net"] }
-zmq = ">=0.9.2"
+# zmq = ">=0.9.2"
+zmq2 ="0.5.0"
 log = "0.4"
 thiserror = "1"
 

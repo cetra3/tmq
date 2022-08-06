@@ -1,4 +1,4 @@
-use zmq::{self, Context as ZmqContext};
+use zmq2::{self, Context as ZmqContext};
 
 use crate::{
     comm::SenderReceiver, poll::ZmqPoller, socket::AsZmqSocket, FromZmqSocket, Result,
@@ -7,7 +7,7 @@ use crate::{
 
 /// Create a builder for a ROUTER socket.
 pub fn router(context: &ZmqContext) -> SocketBuilder<Router> {
-    SocketBuilder::new(context, zmq::SocketType::ROUTER)
+    SocketBuilder::new(context, zmq2::SocketType::ROUTER)
 }
 
 /// Asynchronous ROUTER socket.
@@ -16,7 +16,7 @@ pub struct Router {
 }
 
 impl FromZmqSocket<Router> for Router {
-    fn from_zmq_socket(socket: zmq::Socket) -> crate::Result<Self> {
+    fn from_zmq_socket(socket: zmq2::Socket) -> crate::Result<Self> {
         Ok(Self {
             inner: SenderReceiver::new(ZmqPoller::from_zmq_socket(socket)?),
         })

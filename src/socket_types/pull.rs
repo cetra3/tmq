@@ -1,10 +1,10 @@
-use zmq::{self, Context as ZmqContext};
+use zmq2::{self, Context as ZmqContext};
 
 use crate::{comm::Receiver, poll::ZmqPoller, FromZmqSocket, SocketBuilder};
 
 /// Create a builder for a PULL socket.
 pub fn pull(context: &ZmqContext) -> SocketBuilder<Pull> {
-    SocketBuilder::new(context, zmq::SocketType::PULL)
+    SocketBuilder::new(context, zmq2::SocketType::PULL)
 }
 
 /// Asynchronous PULL socket.
@@ -13,7 +13,7 @@ pub struct Pull {
 }
 
 impl FromZmqSocket<Pull> for Pull {
-    fn from_zmq_socket(socket: zmq::Socket) -> crate::Result<Self> {
+    fn from_zmq_socket(socket: zmq2::Socket) -> crate::Result<Self> {
         Ok(Self {
             inner: Receiver::new(ZmqPoller::from_zmq_socket(socket)?),
         })

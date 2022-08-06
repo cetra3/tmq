@@ -1,4 +1,4 @@
-use zmq::{self, Context as ZmqContext};
+use zmq2::{self, Context as ZmqContext};
 
 use crate::{poll::ZmqPoller, socket::AsZmqSocket, FromZmqSocket, Receiver, SocketBuilder};
 
@@ -30,16 +30,16 @@ use crate::{poll::ZmqPoller, socket::AsZmqSocket, FromZmqSocket, Receiver, Socke
 /// }
 /// ```
 pub fn subscribe(context: &ZmqContext) -> SocketBuilder<SubscribeWithoutTopic> {
-    SocketBuilder::new(context, zmq::SocketType::SUB)
+    SocketBuilder::new(context, zmq2::SocketType::SUB)
 }
 
 /// SUB socket which is already bound or connected, but isn't yet subscribed to a topic.
 pub struct SubscribeWithoutTopic {
-    socket: zmq::Socket,
+    socket: zmq2::Socket,
 }
 
 impl FromZmqSocket<SubscribeWithoutTopic> for SubscribeWithoutTopic {
-    fn from_zmq_socket(socket: zmq::Socket) -> crate::Result<Self> {
+    fn from_zmq_socket(socket: zmq2::Socket) -> crate::Result<Self> {
         Ok(Self { socket })
     }
 }

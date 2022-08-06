@@ -1,10 +1,10 @@
-use zmq::{self, Context as ZmqContext};
+use zmq2::{self, Context as ZmqContext};
 
 use crate::{comm::SenderReceiver, poll::ZmqPoller, FromZmqSocket, SocketBuilder};
 
 /// Create a builder for a PAIR socket.
 pub fn pair(context: &ZmqContext) -> SocketBuilder<Pair> {
-    SocketBuilder::new(context, zmq::SocketType::PAIR)
+    SocketBuilder::new(context, zmq2::SocketType::PAIR)
 }
 
 /// Asynchronous PAIR Socket.
@@ -13,7 +13,7 @@ pub struct Pair {
 }
 
 impl FromZmqSocket<Pair> for Pair {
-    fn from_zmq_socket(socket: zmq::Socket) -> crate::Result<Self> {
+    fn from_zmq_socket(socket: zmq2::Socket) -> crate::Result<Self> {
         Ok(Self {
             inner: SenderReceiver::new(ZmqPoller::from_zmq_socket(socket)?),
         })

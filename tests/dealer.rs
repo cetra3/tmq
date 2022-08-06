@@ -1,5 +1,5 @@
 use futures::{FutureExt, SinkExt, StreamExt, TryFutureExt};
-use zmq::{Context, SocketType};
+use zmq2::{Context, SocketType};
 
 use std::thread::spawn;
 use tmq::{dealer, Multipart, Result};
@@ -211,8 +211,8 @@ async fn split_send_all() -> Result<()> {
 
     let mut count = futures::stream::iter((0..count).map(|i| {
         Ok(Multipart::from(vec![
-            zmq::Message::from(&i.to_string()),
-            zmq::Message::from(&(i + 1).to_string()),
+            zmq2::Message::from(&i.to_string()),
+            zmq2::Message::from(&(i + 1).to_string()),
         ]))
     }));
     tx.send_all(&mut count).await?;

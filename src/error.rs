@@ -5,7 +5,7 @@ use thiserror::Error;
 pub enum TmqError {
     /// Inner ZMQ error.
     #[error("Zmq error: {0}")]
-    Zmq(#[from] zmq::Error),
+    Zmq(#[from] zmq2::Error),
     /// A send operation of a multipart message was successfully started, but it could not be finished.
     #[error("Interrupted Zmq send. Please report this at https://github.com/cetra3/tmq/issues")]
     InterruptedSend,

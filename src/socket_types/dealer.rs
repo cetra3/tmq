@@ -1,10 +1,10 @@
-use zmq::{self, Context as ZmqContext};
+use zmq2::{self, Context as ZmqContext};
 
 use crate::{comm::SenderReceiver, poll::ZmqPoller, FromZmqSocket, SocketBuilder};
 
 /// Create a builder for a DEALER socket.
 pub fn dealer(context: &ZmqContext) -> SocketBuilder<Dealer> {
-    SocketBuilder::new(context, zmq::SocketType::DEALER)
+    SocketBuilder::new(context, zmq2::SocketType::DEALER)
 }
 
 /// Asynchronous DEALER Socket.
@@ -13,7 +13,7 @@ pub struct Dealer {
 }
 
 impl FromZmqSocket<Dealer> for Dealer {
-    fn from_zmq_socket(socket: zmq::Socket) -> crate::Result<Self> {
+    fn from_zmq_socket(socket: zmq2::Socket) -> crate::Result<Self> {
         Ok(Self {
             inner: SenderReceiver::new(ZmqPoller::from_zmq_socket(socket)?),
         })

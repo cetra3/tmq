@@ -5,7 +5,7 @@ macro_rules! impl_wrapper {
     ($type: ty, $target: ty, $field: ident) => {
         impl $crate::socket::AsZmqSocket for $type {
             #[inline]
-            fn get_socket(&self) -> &::zmq::Socket {
+            fn get_socket(&self) -> &::zmq2::Socket {
                 &self.$field.get_socket()
             }
         }
@@ -80,7 +80,7 @@ macro_rules! impl_as_socket {
     ($type: ty, $field: ident) => {
         impl $crate::socket::AsZmqSocket for $type {
             #[inline]
-            fn get_socket(&self) -> &::zmq::Socket {
+            fn get_socket(&self) -> &::zmq2::Socket {
                 &self.$field.get_socket()
             }
         }

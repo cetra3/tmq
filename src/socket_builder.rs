@@ -1,5 +1,5 @@
 use crate::{FromZmqSocket, TmqError};
-use zmq::{Context, SocketType};
+use zmq2::{Context, SocketType};
 
 macro_rules! setter {
     ($name: ident, $type: ty, $doc: expr) => {
@@ -31,7 +31,7 @@ macro_rules! setter {
 /// [`bind`]: struct.SocketBuilder.html#method.bind
 /// [`connect`]: struct.SocketBuilder.html#method.connect
 pub struct SocketBuilder<T> {
-    socket: Option<::zmq::Socket>,
+    socket: Option<::zmq2::Socket>,
     error: Option<TmqError>,
     _phantom: std::marker::PhantomData<T>,
 }

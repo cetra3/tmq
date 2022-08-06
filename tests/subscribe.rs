@@ -1,5 +1,5 @@
 use tmq::{subscribe, Result};
-use zmq::{Context, SocketType};
+use zmq2::{Context, SocketType};
 
 use futures::StreamExt;
 use std::time::Duration;

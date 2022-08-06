@@ -1,4 +1,4 @@
-use zmq::{Context, SocketType};
+use zmq2::{Context, SocketType};
 
 use futures::SinkExt;
 use std::{thread::spawn, time::Duration};
