@@ -28,13 +28,13 @@ async fn client(ctx: Rc<Context>, client_id: u64, frontend: String) -> tmq::Resu
     loop {
         println!("Client {} sending request {}", client_id, request_id);
 
-        let request_str = request_id.to_string();
-        let msg = vec![client_id.as_bytes(), request_str.as_bytes(), b"request"];
+        let request_id_str = request_id.to_string();
+        let msg = vec![client_id.as_bytes(), request_id_str.as_bytes(), b"request"];
         sock.send(msg).await?;
 
         let response = sock.next().await.unwrap()?;
         let expected: Multipart =
-            vec![client_id.as_bytes(), request_str.as_bytes(), b"response"].into();
+            vec![client_id.as_bytes(), request_id_str.as_bytes(), b"response"].into();
         assert_eq!(expected, response);
 
         let sleep_time = rng.gen_range(200, 1000);
@@ -49,13 +49,15 @@ async fn worker(ctx: Rc<Context>, worker_id: u64, backend: String) -> Result<(),
     loop {
         let mut request = sock.next().await.unwrap()?;
         let identity = request.pop_front().unwrap();
-        let request_id = request.pop_front().unwrap();
         let client_id = request.pop_front().unwrap();
+        let request_id = request.pop_front().unwrap();
+        let request_body = request.pop_front().unwrap();
 
         println!(
-            "Worker {} handling request {} from client {}",
+            "Worker {} handling request(id={} body={}) from client {}",
             worker_id,
             request_id.as_str().unwrap(),
+            request_body.as_str().unwrap(),
             client_id.as_str().unwrap()
         );
 
@@ -63,7 +65,7 @@ async fn worker(ctx: Rc<Context>, worker_id: u64, backend: String) -> Result<(),
         let sleep_time = rng.gen_range(100, 3000);
         sleep(Duration::from_millis(sleep_time)).await;
 
-        let response = vec![identity, request_id, client_id, "response".into()];
+        let response = vec![identity, client_id, request_id, "response".into()];
         sock.send(response).await?;
     }
 }
@@ -117,7 +119,7 @@ fn main() -> tmq::Result<()> {
     }
 
     // spawn clients
-    for client_id in 0..3 {
+    for client_id in 10..13 {
         let ctx = ctx.clone();
         let frontend = frontend.clone();
         tasks.spawn_local(async move {
