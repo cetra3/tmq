@@ -225,7 +225,7 @@ pub async fn hammer_receive<S: Stream<Item = Result<Multipart>> + Unpin>(
 /// Helper functions
 pub fn generate_tcp_address() -> String {
     let mut rng = rand::thread_rng();
-    let port = rng.gen_range(2000, 65000);
+    let port = rng.gen_range(2000..65000);
     format!("tcp://127.0.0.1:{}", port)
 }
 

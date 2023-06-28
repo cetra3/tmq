@@ -37,7 +37,7 @@ async fn client(ctx: Rc<Context>, client_id: u64, frontend: String) -> tmq::Resu
             vec![client_id.as_bytes(), request_id_str.as_bytes(), b"response"].into();
         assert_eq!(expected, response);
 
-        let sleep_time = rng.gen_range(200, 1000);
+        let sleep_time = rng.gen_range(200..1000);
         sleep(Duration::from_millis(sleep_time)).await;
         request_id += 1;
     }
@@ -62,7 +62,7 @@ async fn worker(ctx: Rc<Context>, worker_id: u64, backend: String) -> Result<(),
         );
 
         // simulate work
-        let sleep_time = rng.gen_range(100, 3000);
+        let sleep_time = rng.gen_range(100..3000);
         sleep(Duration::from_millis(sleep_time)).await;
 
         let response = vec![identity, client_id, request_id, "response".into()];
