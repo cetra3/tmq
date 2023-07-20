@@ -1,6 +1,6 @@
 use std::pin::Pin;
 
-use crate::{poll::ZmqPoller, FromZmqSocket, Multipart, SocketBuilder};
+use crate::{poll::ZmqPoller, AsZmqSocket, FromZmqSocket, Multipart, SocketBuilder};
 use zmq::{self, Context as ZmqContext};
 
 /// Create a builder for a REQ socket
