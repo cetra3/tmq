@@ -1,4 +1,4 @@
-use zmq::{self, Context as ZmqContext};
+use zmq::Context as ZmqContext;
 
 use crate::{poll::ZmqPoller, FromZmqSocket, Sender, SocketBuilder};
 
