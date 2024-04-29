@@ -119,6 +119,21 @@ where
         "Setter for the `ZMQ_CURVE_SERVER` option."
     );
     setter!(
+        set_curve_secretkey,
+        &[u8],
+        "Setter for the `ZMQ_CURVE_SECRETKEY` option."
+    );
+    setter!(
+        set_curve_serverkey,
+        &[u8],
+        "Setter for the `ZMQ_CURVE_SERVERKEY` option."
+    );
+    setter!(
+        set_curve_publickey,
+        &[u8],
+        "Setter for the `ZMQ_CURVE_PUBLICKEY` option."
+    );
+    setter!(
         set_gssapi_server,
         bool,
         "Setter for the `ZMQ_GSSAPI_SERVER` option."
