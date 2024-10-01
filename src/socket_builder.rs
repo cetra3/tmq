@@ -107,6 +107,21 @@ where
         bool,
         "Setter for the `ZMQ_PLAIN_SERVER` option."
     );
+    setter!(
+        set_plain_username,
+        Option<&str>,
+        "Setter for the `ZMQ_PLAIN_USERNAME` option."
+    );
+    setter!(
+        set_plain_password,
+        Option<&str>,
+        "Setter for the `ZMQ_PLAIN_PASSWORD` option."
+    );
+    setter!(
+        set_zap_domain,
+        &str,
+        "Setter for the `ZMQ_ZAP_DOMAIN` option."
+    );
     setter!(set_conflate, bool, "Setter for the `ZMQ_CONFLATE` option.");
     setter!(
         set_probe_router,
