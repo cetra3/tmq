@@ -15,6 +15,17 @@ This crate bridges Tokio and ZeroMQ to allow for ZeroMQ in the async world.
 
 ## Changelog
 
+### 0.5.0 - Extra setters/getters & new rust edition
+
+- Added setters for curve key encryption [#45](https://github.com/cetra3/tmq/pull/45)
+- Remove Redundant Imports [#43](https://github.com/cetra3/tmq/pull/43)
+- Add more socket options & bump edition [#46](https://github.com/cetra3/tmq/pull/46)
+
+
+### 0.4.0 - Bump Deps
+
+Bump Deps & Pin future in RequestSender [#39](https://github.com/cetra3/tmq/pull/39)
+
 ### 0.3.1 - Iter Mut for Multipart
 
 Adds an `iter_mut()` method to `Multipart`
