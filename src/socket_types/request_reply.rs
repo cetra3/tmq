@@ -7,6 +7,10 @@ use zmq::Context as ZmqContext;
 pub fn request(context: &ZmqContext) -> SocketBuilder<RequestSender> {
     SocketBuilder::new(context, zmq::SocketType::REQ)
 }
+/// Create a builder for a REQ socket
+pub fn request_receive(context: &ZmqContext) -> SocketBuilder<RequestReply> {
+    SocketBuilder::new(context, zmq::SocketType::REQ)
+}
 
 /// A REQ Socket returned from the `request` fn
 pub struct RequestSender {
@@ -36,6 +40,12 @@ impl RequestSender {
 pub fn reply(context: &ZmqContext) -> SocketBuilder<RequestReceiver> {
     SocketBuilder::new(context, zmq::SocketType::REP)
 }
+
+/// Create a builder for a REP socket
+pub fn receive_reply(context: &ZmqContext) -> SocketBuilder<RequestReply> {
+    SocketBuilder::new(context, zmq::SocketType::REP)
+}
+
 /// A `RequestReceiver` is returned After sending a message
 pub struct RequestReceiver {
     inner: ZmqPoller,
@@ -57,5 +67,31 @@ impl RequestReceiver {
         let msg =
             futures::future::poll_fn(|cx| Pin::new(&mut self.inner).multipart_recv(cx)).await?;
         Ok((msg, RequestSender { inner: self.inner }))
+    }
+}
+
+impl FromZmqSocket<RequestReply> for RequestReply {
+    fn from_zmq_socket(socket: zmq::Socket) -> crate::Result<Self> {
+        Ok(Self {
+            inner: ZmqPoller::from_zmq_socket(socket)?,
+        })
+    }
+}
+
+/// Bridging `RequestSender` and `RequestReceiver` to make send and recv cancel safe
+pub struct RequestReply {
+    inner: ZmqPoller,
+}
+
+impl RequestReply {
+    /// Send a multipart message
+    pub async fn send(&mut self, mut msg: Multipart) -> crate::Result<()> {
+        futures::future::poll_fn(|cx| Pin::new(&mut self.inner).multipart_flush(cx, &mut msg)).await
+    }
+    /// Receive a multipart message and returns it
+    pub async fn recv(&mut self) -> crate::Result<Multipart> {
+        let msg =
+            futures::future::poll_fn(|cx| Pin::new(&mut self.inner).multipart_recv(cx)).await?;
+        Ok(msg)
     }
 }
