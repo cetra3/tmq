@@ -11,12 +11,13 @@ use tmq::{push, Context, Result};
 #[tokio::main]
 async fn main() -> Result<()> {
     if let Err(_) = env::var("RUST_LOG") {
-        env::set_var("RUST_LOG", "subscribe=DEBUG");
+        env::set_var("RUST_LOG", "push=DEBUG");
     }
 
     pretty_env_logger::init();
 
-    let mut socket = push(&Context::new()).connect("tcp://127.0.0.1:3000")?;
+    let mut socket = push(&Context::new())
+        .bind("tcp://127.0.0.1:7899")?;
 
     let mut i = 0;
     loop {
