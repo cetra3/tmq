@@ -121,7 +121,7 @@ async fn echo() -> Result<()> {
                     msg,
                     response
                         .iter()
-                        .map(|i| std::str::from_utf8(&*i).unwrap())
+                        .map(|i| std::str::from_utf8(i).unwrap())
                         .collect::<Vec<&str>>()
                 );
             }
@@ -166,7 +166,7 @@ async fn proxy() -> Result<()> {
                         msg,
                         response
                             .iter()
-                            .map(|i| std::str::from_utf8(&*i).unwrap())
+                            .map(|i| std::str::from_utf8(i).unwrap())
                             .collect::<Vec<&str>>()
                     );
                 }

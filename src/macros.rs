@@ -1,4 +1,4 @@
-/// Utility implementations
+//! Utility implementations
 
 /// Implements common functions for a Socket wrapper.
 macro_rules! impl_wrapper {

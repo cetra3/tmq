@@ -55,7 +55,7 @@ pub fn sync_requester(address: String, count: u64, part2: &'static str) -> JoinH
         for i in 0..count {
             let msg = format!("Req#{}", i);
             socket
-                .send_multipart(&[msg.as_bytes(), part2.as_bytes()], 0)
+                .send_multipart([msg.as_bytes(), part2.as_bytes()], 0)
                 .unwrap();
             let received = socket.recv_multipart(0).unwrap();
             assert_eq!(&received[0], &msg.as_bytes());

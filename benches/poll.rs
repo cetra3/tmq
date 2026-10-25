@@ -31,7 +31,7 @@ fn poll_benchmark(c: &mut Criterion) {
             || {
                 sender
                     .send_multipart(
-                        vec![zmq::Message::from("hello"), zmq::Message::from("world")].into_iter(),
+                        vec![zmq::Message::from("hello"), zmq::Message::from("world")],
                         0,
                     )
                     .unwrap();
