@@ -60,6 +60,7 @@ pub struct Subscribe {
 }
 impl_wrapper!(Subscribe, Receiver, inner);
 impl_wrapper_stream!(Subscribe, inner);
+impl_buffered!(Subscribe, inner);
 
 impl Subscribe {
     /// Adds another topic to this subscriber.

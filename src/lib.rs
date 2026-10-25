@@ -52,6 +52,7 @@ pub type Result<T> = std::result::Result<T, TmqError>;
 pub use zmq::{Context, Message};
 
 /// Internal re-exports
+pub use comm::BufferedReceiver;
 pub use error::TmqError;
 pub use message::Multipart;
 pub use socket::{AsZmqSocket, SocketExt};
